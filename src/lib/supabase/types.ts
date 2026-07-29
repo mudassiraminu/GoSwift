@@ -153,7 +153,7 @@ export interface Database {
       reviews: Table<PlaceholderRow>;
       audit_logs: Table<PlaceholderRow>;
     };
-    Views: Record<string, never>;
+    Views: { [_ in never]: never };
     Functions: {
       has_role: { Args: { _user_id: string; _role: AppRole }; Returns: boolean };
       my_provider_id: { Args: Record<string, never>; Returns: string | null };
@@ -166,6 +166,6 @@ export interface Database {
       rider_status: RiderStatus;
       doc_status: DocStatus;
     };
-    CompositeTypes: Record<string, never>;
+    CompositeTypes: { [_ in never]: never };
   };
 }
