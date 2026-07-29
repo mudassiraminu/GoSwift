@@ -128,6 +128,7 @@ type Table<Row> = {
 type PlaceholderRow = Record<string, unknown> & { id: string };
 
 export interface Database {
+  __InternalSupabase: { PostgrestVersion: "12" };
   public: {
     Tables: {
       profiles: Table<Profile>;
