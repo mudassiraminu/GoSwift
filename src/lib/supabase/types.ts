@@ -10,7 +10,7 @@ export type AccountType = "individual" | "business";
 export type RiderStatus = "active" | "inactive" | "suspended";
 export type DocStatus = "pending" | "approved" | "rejected";
 
-export interface Profile {
+export type Profile = {
   id: string;
   full_name: string | null;
   phone: string | null;
@@ -20,14 +20,14 @@ export interface Profile {
   updated_at: string;
 }
 
-export interface UserRoleRow {
+export type UserRoleRow = {
   id: string;
   user_id: string;
   role: AppRole;
   created_at: string;
 }
 
-export interface Business {
+export type Business = {
   id: string;
   owner_id: string;
   name: string;
@@ -40,7 +40,7 @@ export interface Business {
   updated_at: string;
 }
 
-export interface DeliveryProvider {
+export type DeliveryProvider = {
   id: string;
   owner_id: string;
   company_name: string;
@@ -62,7 +62,7 @@ export interface DeliveryProvider {
   updated_at: string;
 }
 
-export interface ProviderVerificationDocument {
+export type ProviderVerificationDocument = {
   id: string;
   provider_id: string;
   doc_type: string;
@@ -73,7 +73,7 @@ export interface ProviderVerificationDocument {
   updated_at: string;
 }
 
-export interface ProviderServiceArea {
+export type ProviderServiceArea = {
   id: string;
   provider_id: string;
   country: string | null;
@@ -82,7 +82,7 @@ export interface ProviderServiceArea {
   created_at: string;
 }
 
-export interface ProviderServiceType {
+export type ProviderServiceType = {
   id: string;
   provider_id: string;
   service_type: string;
@@ -90,7 +90,7 @@ export interface ProviderServiceType {
   created_at: string;
 }
 
-export interface Rider {
+export type Rider = {
   id: string;
   provider_id: string;
   user_id: string | null;
@@ -106,7 +106,7 @@ export interface Rider {
   updated_at: string;
 }
 
-export interface AppNotification {
+export type AppNotification = {
   id: string;
   user_id: string;
   type: string;
@@ -127,7 +127,7 @@ type Table<Row> = {
 /** Loose row type for the future-workflow tables (structure lives in schema.sql). */
 type PlaceholderRow = Record<string, unknown> & { id: string };
 
-export interface Database {
+export type Database = {
   __InternalSupabase: { PostgrestVersion: "12" };
   public: {
     Tables: {
