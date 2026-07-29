@@ -40,7 +40,7 @@ export function RoleGuard({ role, children }: { role: AppRole; children: ReactNo
             this is a mistake, contact an administrator.
           </p>
           <Button asChild className="mt-6">
-            <Link to={homePath}>Go to my dashboard</Link>
+            <Link to={homePath as "/dashboard"}>Go to my dashboard</Link>
           </Button>
         </div>
       </div>
