@@ -1,0 +1,164 @@
+import { Link, useRouterState } from "@tanstack/react-router";
+import type { LucideIcon } from "lucide-react";
+import { Bell, Menu, Package, X } from "lucide-react";
+import { useState, type ReactNode } from "react";
+
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/lib/supabase/auth";
+import { cn } from "@/lib/utils";
+
+export interface NavItem {
+  label: string;
+  to?: string;
+  icon: LucideIcon;
+  soon?: boolean;
+}
+
+interface DashboardShellProps {
+  title: string;
+  subtitle?: string;
+  navItems: NavItem[];
+  children: ReactNode;
+  actions?: ReactNode;
+}
+
+export function DashboardShell({
+  title,
+  subtitle,
+  navItems,
+  children,
+  actions,
+}: DashboardShellProps) {
+  const [open, setOpen] = useState(false);
+  const { profile, user, signOut } = useAuth();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+
+  const nav = (
+    <nav className="flex flex-col gap-1">
+      {navItems.map((item) => {
+        const Icon = item.icon;
+        const active = item.to === pathname;
+        const base =
+          "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors";
+        if (!item.to) {
+          return (
+            <span
+              key={item.label}
+              className={cn(base, "cursor-default text-sidebar-foreground/45")}
+              title="Coming in a later release"
+            >
+              <Icon className="h-4 w-4 shrink-0" />
+              <span className="truncate">{item.label}</span>
+              <span className="ml-auto rounded bg-sidebar-accent px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-sidebar-accent-foreground/70">
+                Soon
+              </span>
+            </span>
+          );
+        }
+        return (
+          <Link
+            key={item.label}
+            to={item.to}
+            onClick={() => setOpen(false)}
+            className={cn(
+              base,
+              active
+                ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+            )}
+          >
+            <Icon className="h-4 w-4 shrink-0" />
+            <span className="truncate">{item.label}</span>
+          </Link>
+        );
+      })}
+    </nav>
+  );
+
+  return (
+    <div className="flex min-h-screen bg-muted/40">
+      {/* Desktop sidebar */}
+      <aside className="hidden w-64 shrink-0 flex-col bg-sidebar p-4 lg:flex">
+        <Link to="/" className="mb-6 flex items-center gap-2 px-1">
+          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+            <Package className="h-5 w-5" />
+          </span>
+          <span className="font-display text-lg font-bold text-sidebar-foreground">Dispatchly</span>
+        </Link>
+        {nav}
+        <div className="mt-auto border-t border-sidebar-border pt-4">
+          <p className="truncate px-3 text-xs text-sidebar-foreground/60">
+            {profile?.full_name || user?.email}
+          </p>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="mt-2 w-full justify-start text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            onClick={() => void signOut()}
+          >
+            Sign out
+          </Button>
+        </div>
+      </aside>
+
+      {/* Mobile drawer */}
+      {open ? (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <button
+            aria-label="Close menu"
+            className="absolute inset-0 bg-foreground/50"
+            onClick={() => setOpen(false)}
+          />
+          <div className="absolute inset-y-0 left-0 flex w-72 flex-col bg-sidebar p-4">
+            <div className="mb-6 flex items-center justify-between">
+              <span className="font-display text-lg font-bold text-sidebar-foreground">
+                Dispatchly
+              </span>
+              <button
+                aria-label="Close menu"
+                onClick={() => setOpen(false)}
+                className="text-sidebar-foreground"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            {nav}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="mt-auto w-full justify-start text-sidebar-foreground/80"
+              onClick={() => void signOut()}
+            >
+              Sign out
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="flex h-16 items-center gap-3 border-b border-border bg-background px-4 sm:px-6">
+          <button
+            aria-label="Open menu"
+            onClick={() => setOpen(true)}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-border lg:hidden"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+          <div className="min-w-0 flex-1">
+            <h1 className="truncate font-display text-lg font-semibold text-foreground">{title}</h1>
+            {subtitle ? (
+              <p className="truncate text-xs text-muted-foreground">{subtitle}</p>
+            ) : null}
+          </div>
+          {actions}
+          <Button asChild variant="ghost" size="icon" aria-label="Profile">
+            <Link to="/profile">
+              <Bell className="h-4 w-4" />
+            </Link>
+          </Button>
+        </header>
+        <main className="flex-1 p-4 sm:p-6">{children}</main>
+      </div>
+    </div>
+  );
+}
