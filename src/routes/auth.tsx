@@ -11,7 +11,7 @@ import { supabase } from "@/lib/supabase/client";
 import { ROLE_HOME, useAuth } from "@/lib/supabase/auth";
 import type { AppRole } from "@/lib/supabase/types";
 
-type Mode = "signin" | "signup";
+type Mode = "signin" | "signup" | "forgot";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
@@ -45,7 +45,12 @@ const SIGNUP_ROLES: { value: Exclude<AppRole, "admin">; label: string; hint: str
 ];
 
 function AuthPage() {
-  const { mode: initialMode, redirect: redirectTo } = Route.useSearch();
+  const { mode: initialMode, redirect: rawRedirect } = Route.useSearch();
+  // Only same-origin absolute paths are honoured (no open redirects).
+  const redirectTo =
+    rawRedirect && rawRedirect.startsWith("/") && !rawRedirect.startsWith("//")
+      ? rawRedirect
+      : undefined;
   const [mode, setMode] = useState<Mode>(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
