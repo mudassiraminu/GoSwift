@@ -92,7 +92,13 @@ function AuthPage() {
         }
         await refresh();
         toast.success("Account created");
-        await navigate({ to: ROLE_HOME[role] as "/dashboard", replace: true });
+        await navigate({
+          to: (redirectTo && redirectTo.startsWith("/")
+            ? redirectTo
+            : ROLE_HOME[role]) as "/dashboard",
+          replace: true,
+        });
+
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
