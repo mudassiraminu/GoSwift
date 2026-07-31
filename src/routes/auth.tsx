@@ -61,12 +61,10 @@ function AuthPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!loading && user) {
-      const target = redirectTo && redirectTo.startsWith("/") ? redirectTo : homePath;
-      void navigate({ to: target as "/dashboard", replace: true });
+    if (!loading && user && mode !== "forgot") {
+      void navigate({ to: (redirectTo ?? homePath) as "/dashboard", replace: true });
     }
-  }, [loading, user, homePath, redirectTo, navigate]);
-
+  }, [loading, user, homePath, redirectTo, mode, navigate]);
 
   if (!configured) {
     return (
@@ -76,16 +74,33 @@ function AuthPage() {
     );
   }
 
+  /** Absolute URL Supabase should send the user back to, keeping ?redirect intact. */
+  function callbackUrl(path = "/") {
+    const url = new URL(path, window.location.origin);
+    if (redirectTo) url.searchParams.set("redirect", redirectTo);
+    return url.toString();
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
     try {
+      if (mode === "forgot") {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: callbackUrl("/reset-password"),
+        });
+        if (error) throw error;
+        toast.success("Password reset link sent — check your inbox.");
+        setMode("signin");
+        return;
+      }
+
       if (mode === "signup") {
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            emailRedirectTo: window.location.origin,
+            emailRedirectTo: callbackUrl("/"),
             data: { full_name: fullName, role },
           },
         });
@@ -98,17 +113,15 @@ function AuthPage() {
         await refresh();
         toast.success("Account created");
         await navigate({
-          to: (redirectTo && redirectTo.startsWith("/")
-            ? redirectTo
-            : ROLE_HOME[role]) as "/dashboard",
+          to: (redirectTo ?? ROLE_HOME[role]) as "/dashboard",
           replace: true,
         });
-
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         await refresh();
         toast.success("Welcome back");
+        // The effect above navigates to redirectTo (or the role home) once the session lands.
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Something went wrong");
@@ -120,10 +133,11 @@ function AuthPage() {
   async function handleGoogle() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: window.location.origin },
+      options: { redirectTo: callbackUrl("/") },
     });
     if (error) toast.error(error.message);
   }
+
 
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
