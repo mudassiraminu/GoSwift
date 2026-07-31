@@ -25,7 +25,7 @@ export const Route = createFileRoute("/")({
       { property: "og:title", content: "GOSwift — Fast Parcel Delivery App" },
       {
         property: "og:description",
-        content: "Book a courier, track your parcel live and pay securely with GOSwift.",
+        content: "GOSwift delivers your parcels quickly with verified couriers, live tracking and secure payment. Available on iOS and Android.",
       },
     ],
   }),

@@ -87,14 +87,20 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "default" },
       { name: "mobile-web-app-capable", content: "yes" },
-      { title: "GOSwift — Verified Delivery Marketplace" },
+      { title: "GOSwift — Fast Parcel Delivery App" },
       {
         name: "description",
         content:
-          "Compare quotes from verified delivery companies, track shipments and pay securely.",
+          "GOSwift delivers your parcels quickly with verified couriers, live tracking and secure payment. Available on iOS and Android.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { property: "og:title", content: "GOSwift — Fast Parcel Delivery App" },
+      { name: "twitter:title", content: "GOSwift — Fast Parcel Delivery App" },
+      { property: "og:description", content: "GOSwift delivers your parcels quickly with verified couriers, live tracking and secure payment. Available on iOS and Android." },
+      { name: "twitter:description", content: "GOSwift delivers your parcels quickly with verified couriers, live tracking and secure payment. Available on iOS and Android." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/376a3956-4cfc-4107-8ad3-99deb8897fdf/id-preview-f1cd8c03--29b44d93-8975-4cc1-abb9-465ed142b82e.lovable.app-1785510347766.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/376a3956-4cfc-4107-8ad3-99deb8897fdf/id-preview-f1cd8c03--29b44d93-8975-4cc1-abb9-465ed142b82e.lovable.app-1785510347766.png" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
