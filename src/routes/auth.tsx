@@ -17,7 +17,9 @@ export const Route = createFileRoute("/auth")({
   ssr: false,
   validateSearch: (search: Record<string, unknown>) => ({
     mode: search.mode === "signup" ? ("signup" as const) : ("signin" as const),
+    redirect: typeof search.redirect === "string" ? search.redirect : undefined,
   }),
+
   head: () => ({
     meta: [
       { title: "Sign in — GOSwift" },
@@ -43,7 +45,7 @@ const SIGNUP_ROLES: { value: Exclude<AppRole, "admin">; label: string; hint: str
 ];
 
 function AuthPage() {
-  const { mode: initialMode } = Route.useSearch();
+  const { mode: initialMode, redirect: redirectTo } = Route.useSearch();
   const [mode, setMode] = useState<Mode>(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -55,9 +57,11 @@ function AuthPage() {
 
   useEffect(() => {
     if (!loading && user) {
-      void navigate({ to: homePath as "/dashboard", replace: true });
+      const target = redirectTo && redirectTo.startsWith("/") ? redirectTo : homePath;
+      void navigate({ to: target as "/dashboard", replace: true });
     }
-  }, [loading, user, homePath, navigate]);
+  }, [loading, user, homePath, redirectTo, navigate]);
+
 
   if (!configured) {
     return (
@@ -88,7 +92,13 @@ function AuthPage() {
         }
         await refresh();
         toast.success("Account created");
-        await navigate({ to: ROLE_HOME[role] as "/dashboard", replace: true });
+        await navigate({
+          to: (redirectTo && redirectTo.startsWith("/")
+            ? redirectTo
+            : ROLE_HOME[role]) as "/dashboard",
+          replace: true,
+        });
+
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
