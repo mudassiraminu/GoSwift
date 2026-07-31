@@ -8,12 +8,12 @@ import { Card, CardContent } from "@/components/ui/card";
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
     meta: [
-      { title: "Admin console — Dispatchly" },
+      { title: "Admin console — GOSwift" },
       {
         name: "description",
         content: "Verify providers, monitor deliveries and resolve disputes across the platform.",
       },
-      { property: "og:title", content: "Admin console — Dispatchly" },
+      { property: "og:title", content: "Admin console — GOSwift" },
       {
         property: "og:description",
         content: "Verify providers, monitor deliveries and resolve disputes.",

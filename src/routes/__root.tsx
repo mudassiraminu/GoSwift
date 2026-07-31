@@ -79,7 +79,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Dispatchly — Verified Delivery Marketplace" },
+      { title: "GOSwift — Verified Delivery Marketplace" },
       {
         name: "description",
         content:

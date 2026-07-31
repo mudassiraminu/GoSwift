@@ -18,13 +18,13 @@ import { Card, CardContent } from "@/components/ui/card";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Dispatchly — Verified Delivery Marketplace" },
+      { title: "GOSwift — Verified Delivery Marketplace" },
       {
         name: "description",
         content:
           "Post a delivery, compare quotes from verified delivery companies, track it live and pay securely with dispute protection.",
       },
-      { property: "og:title", content: "Dispatchly — Verified Delivery Marketplace" },
+      { property: "og:title", content: "GOSwift — Verified Delivery Marketplace" },
       {
         property: "og:description",
         content:
@@ -99,7 +99,7 @@ function HomePage() {
                 Send anything, with a delivery company you can actually trust.
               </h1>
               <p className="mt-5 max-w-xl text-base text-primary-foreground/75 sm:text-lg">
-                Dispatchly connects businesses and individuals with vetted delivery companies.
+                GOSwift connects businesses and individuals with vetted delivery companies.
                 Compare real quotes, assign a rider, track the journey and pay only when the parcel
                 lands.
               </p>

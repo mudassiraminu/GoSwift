@@ -23,7 +23,7 @@ export function SiteHeader() {
           <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
             <Package className="h-5 w-5" />
           </span>
-          <span className="font-display text-lg font-bold text-foreground">Dispatchly</span>
+          <span className="font-display text-lg font-bold text-foreground">GOSwift</span>
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex">
