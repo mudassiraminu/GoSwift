@@ -11,7 +11,7 @@ import { supabase } from "@/lib/supabase/client";
 import { ROLE_HOME, useAuth } from "@/lib/supabase/auth";
 import type { AppRole } from "@/lib/supabase/types";
 
-type Mode = "signin" | "signup";
+type Mode = "signin" | "signup" | "forgot";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
@@ -45,7 +45,12 @@ const SIGNUP_ROLES: { value: Exclude<AppRole, "admin">; label: string; hint: str
 ];
 
 function AuthPage() {
-  const { mode: initialMode, redirect: redirectTo } = Route.useSearch();
+  const { mode: initialMode, redirect: rawRedirect } = Route.useSearch();
+  // Only same-origin absolute paths are honoured (no open redirects).
+  const redirectTo =
+    rawRedirect && rawRedirect.startsWith("/") && !rawRedirect.startsWith("//")
+      ? rawRedirect
+      : undefined;
   const [mode, setMode] = useState<Mode>(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -56,12 +61,10 @@ function AuthPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!loading && user) {
-      const target = redirectTo && redirectTo.startsWith("/") ? redirectTo : homePath;
-      void navigate({ to: target as "/dashboard", replace: true });
+    if (!loading && user && mode !== "forgot") {
+      void navigate({ to: (redirectTo ?? homePath) as "/dashboard", replace: true });
     }
-  }, [loading, user, homePath, redirectTo, navigate]);
-
+  }, [loading, user, homePath, redirectTo, mode, navigate]);
 
   if (!configured) {
     return (
@@ -71,16 +74,33 @@ function AuthPage() {
     );
   }
 
+  /** Absolute URL Supabase should send the user back to, keeping ?redirect intact. */
+  function callbackUrl(path = "/") {
+    const url = new URL(path, window.location.origin);
+    if (redirectTo) url.searchParams.set("redirect", redirectTo);
+    return url.toString();
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
     try {
+      if (mode === "forgot") {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: callbackUrl("/reset-password"),
+        });
+        if (error) throw error;
+        toast.success("Password reset link sent — check your inbox.");
+        setMode("signin");
+        return;
+      }
+
       if (mode === "signup") {
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            emailRedirectTo: window.location.origin,
+            emailRedirectTo: callbackUrl("/"),
             data: { full_name: fullName, role },
           },
         });
@@ -93,17 +113,15 @@ function AuthPage() {
         await refresh();
         toast.success("Account created");
         await navigate({
-          to: (redirectTo && redirectTo.startsWith("/")
-            ? redirectTo
-            : ROLE_HOME[role]) as "/dashboard",
+          to: (redirectTo ?? ROLE_HOME[role]) as "/dashboard",
           replace: true,
         });
-
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         await refresh();
         toast.success("Welcome back");
+        // The effect above navigates to redirectTo (or the role home) once the session lands.
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Something went wrong");
@@ -115,10 +133,11 @@ function AuthPage() {
   async function handleGoogle() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: window.location.origin },
+      options: { redirectTo: callbackUrl("/") },
     });
     if (error) toast.error(error.message);
   }
+
 
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
@@ -153,12 +172,18 @@ function AuthPage() {
           </Link>
 
           <h1 className="font-display text-2xl font-bold text-foreground">
-            {mode === "signin" ? "Sign in" : "Create your account"}
+            {mode === "signin"
+              ? "Sign in"
+              : mode === "signup"
+                ? "Create your account"
+                : "Reset your password"}
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
             {mode === "signin"
               ? "Welcome back. Enter your details to continue."
-              : "Tell us how you plan to use GOSwift."}
+              : mode === "signup"
+                ? "Tell us how you plan to use GOSwift."
+                : "We'll email you a secure link to set a new password."}
           </p>
 
           <form onSubmit={handleSubmit} className="mt-8 space-y-4">
@@ -209,46 +234,69 @@ function AuthPage() {
                 required
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                autoComplete={mode === "signin" ? "current-password" : "new-password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                minLength={6}
-                required
-              />
-            </div>
+            {mode !== "forgot" ? (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Password</Label>
+                  {mode === "signin" ? (
+                    <button
+                      type="button"
+                      className="text-xs font-medium text-accent hover:underline"
+                      onClick={() => setMode("forgot")}
+                    >
+                      Forgot password?
+                    </button>
+                  ) : null}
+                </div>
+                <Input
+                  id="password"
+                  type="password"
+                  autoComplete={mode === "signin" ? "current-password" : "new-password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  minLength={6}
+                  required
+                />
+              </div>
+            ) : null}
 
             <Button type="submit" className="w-full" disabled={submitting}>
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              {mode === "signin" ? "Sign in" : "Create account"}
+              {mode === "signin"
+                ? "Sign in"
+                : mode === "signup"
+                  ? "Create account"
+                  : "Send reset link"}
             </Button>
           </form>
 
-          <div className="my-6 flex items-center gap-3">
-            <span className="h-px flex-1 bg-border" />
-            <span className="text-xs uppercase tracking-wider text-muted-foreground">or</span>
-            <span className="h-px flex-1 bg-border" />
-          </div>
+          {mode !== "forgot" ? (
+            <>
+              <div className="my-6 flex items-center gap-3">
+                <span className="h-px flex-1 bg-border" />
+                <span className="text-xs uppercase tracking-wider text-muted-foreground">or</span>
+                <span className="h-px flex-1 bg-border" />
+              </div>
 
-          <Button variant="outline" className="w-full" onClick={() => void handleGoogle()}>
-            Continue with Google
-          </Button>
+              <Button variant="outline" className="w-full" onClick={() => void handleGoogle()}>
+                Continue with Google
+              </Button>
+            </>
+          ) : null}
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
-            {mode === "signin" ? "No account yet?" : "Already have an account?"}{" "}
+            {mode === "signup" ? "Already have an account?" : null}
+            {mode === "signin" ? "No account yet?" : null}{" "}
             <button
               type="button"
               className="font-medium text-accent hover:underline"
-              onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
+              onClick={() => setMode(mode === "signup" ? "signin" : mode === "signin" ? "signup" : "signin")}
             >
-              {mode === "signin" ? "Create one" : "Sign in"}
+              {mode === "signin" ? "Create one" : mode === "signup" ? "Sign in" : "Back to sign in"}
             </button>
           </p>
+
         </div>
       </div>
     </div>
