@@ -172,12 +172,18 @@ function AuthPage() {
           </Link>
 
           <h1 className="font-display text-2xl font-bold text-foreground">
-            {mode === "signin" ? "Sign in" : "Create your account"}
+            {mode === "signin"
+              ? "Sign in"
+              : mode === "signup"
+                ? "Create your account"
+                : "Reset your password"}
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
             {mode === "signin"
               ? "Welcome back. Enter your details to continue."
-              : "Tell us how you plan to use GOSwift."}
+              : mode === "signup"
+                ? "Tell us how you plan to use GOSwift."
+                : "We'll email you a secure link to set a new password."}
           </p>
 
           <form onSubmit={handleSubmit} className="mt-8 space-y-4">
