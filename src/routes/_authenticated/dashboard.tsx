@@ -1,94 +1,181 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { CreditCard, MapPin, MessageSquareQuote, Package, PackagePlus, Star } from "lucide-react";
+import {
+  Bell,
+  Box,
+  ChevronRight,
+  MapPin,
+  PackagePlus,
+  Search,
+  ScanLine,
+  Truck,
+} from "lucide-react";
+import { useState } from "react";
 
-import { DashboardShell, type NavItem } from "@/components/dashboard-shell";
+import { MobileAppShell } from "@/components/mobile/app-shell";
+import { PullToRefresh } from "@/components/mobile/pull-to-refresh";
 import { RoleGuard } from "@/components/role-guard";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/lib/supabase/auth";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
     meta: [
       { title: "My deliveries — GOSwift" },
-      { name: "description", content: "Track your delivery requests, quotes and payments." },
+      { name: "description", content: "Track your GOSwift parcels, quotes and payments." },
       { property: "og:title", content: "My deliveries — GOSwift" },
-      { property: "og:description", content: "Track your delivery requests, quotes and payments." },
+      {
+        property: "og:description",
+        content: "Track your GOSwift parcels, quotes and payments from your phone.",
+      },
     ],
   }),
   component: () => (
     <RoleGuard role="customer">
-      <CustomerDashboard />
+      <CustomerHome />
     </RoleGuard>
   ),
 });
 
-const nav: NavItem[] = [
-  { label: "Overview", to: "/dashboard", icon: Package },
-  { label: "New delivery", icon: PackagePlus },
-  { label: "Quotes", icon: MessageSquareQuote },
-  { label: "Tracking", icon: MapPin },
-  { label: "Payments", icon: CreditCard },
-  { label: "Reviews", icon: Star },
-  { label: "Profile", to: "/profile", icon: Star },
-];
+interface Shipment {
+  id: string;
+  title: string;
+  code: string;
+  from: string;
+  eta: string;
+  progress: number;
+  icon: typeof Box;
+}
 
-function CustomerDashboard() {
+const shipments: Shipment[] = [];
+
+function CustomerHome() {
   const { profile } = useAuth();
+  const [lastSync, setLastSync] = useState<string>("just now");
+
   const firstName = profile?.full_name?.split(" ")[0] ?? "there";
 
+  async function handleRefresh() {
+    await new Promise((r) => setTimeout(r, 900));
+    setLastSync(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
+  }
+
   return (
-    <DashboardShell
-      title="My deliveries"
-      subtitle="Everything you have sent and everything in transit"
-      navItems={nav}
-    >
-      <div className="mx-auto max-w-5xl space-y-6">
-        <div className="rounded-xl bg-primary p-6 text-primary-foreground">
-          <h2 className="font-display text-xl font-bold">Hi {firstName} 👋</h2>
-          <p className="mt-1 text-sm text-primary-foreground/70">
-            Your account is ready. Delivery requests and quotes will appear here.
-          </p>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-3">
-          {[
-            { label: "Active deliveries", value: "0" },
-            { label: "Pending quotes", value: "0" },
-            { label: "Completed", value: "0" },
-          ].map((s) => (
-            <Card key={s.label}>
-              <CardContent className="pt-6">
-                <p className="text-xs uppercase tracking-wider text-muted-foreground">{s.label}</p>
-                <p className="mt-2 font-display text-3xl font-bold text-card-foreground">
-                  {s.value}
-                </p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        <Card>
-          <CardContent className="flex flex-col items-center py-14 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-secondary">
-              <PackagePlus className="h-6 w-6 text-secondary-foreground" />
+    <MobileAppShell
+      header={
+        <header className="pt-safe z-20 bg-background px-5 pb-3">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+            <div className="min-w-0">
+              <p className="truncate font-display text-lg font-bold text-foreground">
+                Hi {firstName}
+              </p>
+              <p className="mt-0.5 inline-flex items-center gap-1 text-xs text-muted-foreground">
+                <MapPin className="h-3.5 w-3.5 text-primary" /> Delivering with GOSwift
+              </p>
             </div>
-            <h3 className="mt-4 font-display text-lg font-semibold text-card-foreground">
-              No deliveries yet
-            </h3>
-            <p className="mt-2 max-w-sm text-sm text-muted-foreground">
-              Delivery requests, provider quotes and live tracking arrive in the next release. Your
-              account and profile are already set up.
-            </p>
-            <Button className="mt-6" disabled>
-              Create a delivery request
-            </Button>
-            <Link to="/profile" className="mt-3 text-sm text-accent hover:underline">
-              Complete your profile
-            </Link>
-          </CardContent>
-        </Card>
-      </div>
-    </DashboardShell>
+            <button
+              type="button"
+              aria-label="Notifications"
+              className="tap-scale flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-secondary text-secondary-foreground"
+            >
+              <Bell className="h-5 w-5" />
+            </button>
+          </div>
+
+          <div className="mt-3 flex items-center gap-2">
+            <div className="flex min-w-0 flex-1 items-center gap-2 rounded-2xl bg-secondary px-4 py-3">
+              <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+              <input
+                placeholder="Search tracking ID"
+                className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+              />
+            </div>
+            <button
+              type="button"
+              aria-label="Scan parcel code"
+              className="tap-scale flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/25"
+            >
+              <ScanLine className="h-5 w-5" />
+            </button>
+          </div>
+        </header>
+      }
+    >
+      <PullToRefresh onRefresh={handleRefresh}>
+        <div className="space-y-6 px-5 pb-6">
+          {/* Quick actions */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="tap-scale relative overflow-hidden rounded-3xl bg-primary p-4 text-primary-foreground shadow-lg shadow-primary/25">
+              <PackagePlus className="h-7 w-7" />
+              <p className="mt-6 font-display text-base font-semibold leading-tight">
+                New
+                <br />
+                Delivery
+              </p>
+            </div>
+            <div className="tap-scale relative overflow-hidden rounded-3xl bg-secondary p-4 text-secondary-foreground">
+              <Truck className="h-7 w-7 text-primary" />
+              <p className="mt-6 font-display text-base font-semibold leading-tight">
+                Track
+                <br />
+                Package
+              </p>
+            </div>
+          </div>
+
+          {/* Current shipment */}
+          <section>
+            <div className="flex items-center justify-between">
+              <h2 className="font-display text-base font-bold text-foreground">Current shipment</h2>
+              <button type="button" className="text-xs font-medium text-primary">
+                See all
+              </button>
+            </div>
+
+            {shipments.length === 0 ? (
+              <div className="mt-3 rounded-3xl border border-dashed border-border bg-card p-8 text-center">
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-secondary">
+                  <Box className="h-6 w-6 text-primary" />
+                </div>
+                <h3 className="mt-4 font-display text-base font-semibold text-card-foreground">
+                  No parcels in transit
+                </h3>
+                <p className="mx-auto mt-2 max-w-[16rem] text-sm text-muted-foreground">
+                  Book your first delivery and it will show up here with live progress.
+                </p>
+                <p className="mt-4 text-[11px] text-muted-foreground">
+                  Pull down to refresh · synced {lastSync}
+                </p>
+              </div>
+            ) : (
+              <ul className="mt-3 space-y-3">
+                {shipments.map((s) => (
+                  <li key={s.id} className="rounded-3xl bg-card p-4 shadow-sm">
+                    <p className="font-semibold">{s.title}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          {/* Profile nudge */}
+          <Link
+            to="/profile"
+            className="tap-scale flex items-center gap-3 rounded-3xl bg-secondary p-4"
+          >
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-card text-primary">
+              <Box className="h-5 w-5" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm font-semibold text-secondary-foreground">
+                Complete your profile
+              </span>
+              <span className="block truncate text-xs text-muted-foreground">
+                Add your phone number for delivery updates
+              </span>
+            </span>
+            <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
+          </Link>
+        </div>
+      </PullToRefresh>
+    </MobileAppShell>
   );
 }
