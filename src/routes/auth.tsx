@@ -234,46 +234,69 @@ function AuthPage() {
                 required
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                autoComplete={mode === "signin" ? "current-password" : "new-password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                minLength={6}
-                required
-              />
-            </div>
+            {mode !== "forgot" ? (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Password</Label>
+                  {mode === "signin" ? (
+                    <button
+                      type="button"
+                      className="text-xs font-medium text-accent hover:underline"
+                      onClick={() => setMode("forgot")}
+                    >
+                      Forgot password?
+                    </button>
+                  ) : null}
+                </div>
+                <Input
+                  id="password"
+                  type="password"
+                  autoComplete={mode === "signin" ? "current-password" : "new-password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  minLength={6}
+                  required
+                />
+              </div>
+            ) : null}
 
             <Button type="submit" className="w-full" disabled={submitting}>
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              {mode === "signin" ? "Sign in" : "Create account"}
+              {mode === "signin"
+                ? "Sign in"
+                : mode === "signup"
+                  ? "Create account"
+                  : "Send reset link"}
             </Button>
           </form>
 
-          <div className="my-6 flex items-center gap-3">
-            <span className="h-px flex-1 bg-border" />
-            <span className="text-xs uppercase tracking-wider text-muted-foreground">or</span>
-            <span className="h-px flex-1 bg-border" />
-          </div>
+          {mode !== "forgot" ? (
+            <>
+              <div className="my-6 flex items-center gap-3">
+                <span className="h-px flex-1 bg-border" />
+                <span className="text-xs uppercase tracking-wider text-muted-foreground">or</span>
+                <span className="h-px flex-1 bg-border" />
+              </div>
 
-          <Button variant="outline" className="w-full" onClick={() => void handleGoogle()}>
-            Continue with Google
-          </Button>
+              <Button variant="outline" className="w-full" onClick={() => void handleGoogle()}>
+                Continue with Google
+              </Button>
+            </>
+          ) : null}
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
-            {mode === "signin" ? "No account yet?" : "Already have an account?"}{" "}
+            {mode === "signup" ? "Already have an account?" : null}
+            {mode === "signin" ? "No account yet?" : null}{" "}
             <button
               type="button"
               className="font-medium text-accent hover:underline"
-              onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
+              onClick={() => setMode(mode === "signup" ? "signin" : mode === "signin" ? "signup" : "signin")}
             >
-              {mode === "signin" ? "Create one" : "Sign in"}
+              {mode === "signin" ? "Create one" : mode === "signup" ? "Sign in" : "Back to sign in"}
             </button>
           </p>
+
         </div>
       </div>
     </div>
