@@ -1,7 +1,8 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import type { LucideIcon } from "lucide-react";
-import { Home, Package, PackagePlus, Settings, User } from "lucide-react";
+import { Home, Package, PackagePlus, Receipt, User } from "lucide-react";
 import type { ReactNode } from "react";
+import { toast } from "sonner";
 
 import { cn } from "@/lib/utils";
 
@@ -15,7 +16,7 @@ const tabs: TabItem[] = [
   { label: "Home", icon: Home, to: "/dashboard" },
   { label: "Shipments", icon: Package },
   { label: "New", icon: PackagePlus },
-  { label: "Activity", icon: Settings },
+  { label: "Activity", icon: Receipt },
   { label: "Profile", icon: User, to: "/profile" },
 ];
 
@@ -36,7 +37,9 @@ export function MobileAppShell({ children, header }: MobileAppShellProps) {
     <div className="flex min-h-[100dvh] justify-center bg-secondary/60">
       <div className="relative flex h-[100dvh] w-full max-w-md flex-col overflow-hidden bg-background shadow-xl shadow-primary/5">
         {header}
-        {children}
+        <div key={pathname} className="gs-rise flex min-h-0 flex-1 flex-col">
+          {children}
+        </div>
 
         {/* Bottom tab bar */}
         <nav className="pb-safe relative z-20 border-t border-border/70 bg-card/95 backdrop-blur">
@@ -47,17 +50,22 @@ export function MobileAppShell({ children, header }: MobileAppShellProps) {
               const center = tab.label === "New";
 
               const inner = center ? (
-                <span className="tap-scale -mt-7 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/35">
+                <span className="tap-scale -mt-7 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/35 transition-shadow hover:shadow-primary/50">
                   <Icon className="h-6 w-6" />
                 </span>
               ) : (
                 <span
                   className={cn(
-                    "tap-scale flex flex-col items-center gap-1 rounded-xl px-3 py-1.5 text-[10px] font-medium",
+                    "tap-scale flex flex-col items-center gap-1 rounded-xl px-3 py-1.5 text-[10px] font-medium transition-colors duration-200",
                     active ? "text-primary" : "text-muted-foreground",
                   )}
                 >
-                  <Icon className="h-5 w-5" />
+                  <Icon
+                    className={cn(
+                      "h-5 w-5 transition-transform duration-300",
+                      active && "-translate-y-0.5 scale-110",
+                    )}
+                  />
                   {tab.label}
                 </span>
               );
@@ -72,6 +80,7 @@ export function MobileAppShell({ children, header }: MobileAppShellProps) {
                     <button
                       type="button"
                       aria-label={`${tab.label} (coming soon)`}
+                      onClick={() => toast.info(`${tab.label} is coming in the next release`)}
                       className="flex w-full justify-center"
                     >
                       {inner}
