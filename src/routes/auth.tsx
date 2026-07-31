@@ -17,7 +17,9 @@ export const Route = createFileRoute("/auth")({
   ssr: false,
   validateSearch: (search: Record<string, unknown>) => ({
     mode: search.mode === "signup" ? ("signup" as const) : ("signin" as const),
+    redirect: typeof search.redirect === "string" ? search.redirect : undefined,
   }),
+
   head: () => ({
     meta: [
       { title: "Sign in — GOSwift" },
