@@ -45,7 +45,7 @@ const SIGNUP_ROLES: { value: Exclude<AppRole, "admin">; label: string; hint: str
 ];
 
 function AuthPage() {
-  const { mode: initialMode } = Route.useSearch();
+  const { mode: initialMode, redirect: redirectTo } = Route.useSearch();
   const [mode, setMode] = useState<Mode>(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -57,9 +57,11 @@ function AuthPage() {
 
   useEffect(() => {
     if (!loading && user) {
-      void navigate({ to: homePath as "/dashboard", replace: true });
+      const target = redirectTo && redirectTo.startsWith("/") ? redirectTo : homePath;
+      void navigate({ to: target as "/dashboard", replace: true });
     }
-  }, [loading, user, homePath, navigate]);
+  }, [loading, user, homePath, redirectTo, navigate]);
+
 
   if (!configured) {
     return (
