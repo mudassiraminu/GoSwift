@@ -20,16 +20,16 @@ export const Route = createFileRoute("/auth")({
   }),
   head: () => ({
     meta: [
-      { title: "Sign in — Dispatchly" },
+      { title: "Sign in — GOSwift" },
       {
         name: "description",
         content:
-          "Sign in or create a Dispatchly account as a customer, delivery provider or rider.",
+          "Sign in or create a GOSwift account as a customer, delivery provider or rider.",
       },
-      { property: "og:title", content: "Sign in — Dispatchly" },
+      { property: "og:title", content: "Sign in — GOSwift" },
       {
         property: "og:description",
-        content: "Access your Dispatchly deliveries, quotes and rider assignments.",
+        content: "Access your GOSwift deliveries, quotes and rider assignments.",
       },
     ],
   }),
@@ -117,7 +117,7 @@ function AuthPage() {
           <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-foreground/10">
             <Package className="h-5 w-5" />
           </span>
-          <span className="font-display text-lg font-bold">Dispatchly</span>
+          <span className="font-display text-lg font-bold">GOSwift</span>
         </Link>
         <div>
           <h2 className="max-w-sm text-3xl font-bold leading-tight">
@@ -139,7 +139,7 @@ function AuthPage() {
             <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
               <Package className="h-5 w-5" />
             </span>
-            <span className="font-display text-lg font-bold">Dispatchly</span>
+            <span className="font-display text-lg font-bold">GOSwift</span>
           </Link>
 
           <h1 className="font-display text-2xl font-bold text-foreground">
@@ -148,7 +148,7 @@ function AuthPage() {
           <p className="mt-2 text-sm text-muted-foreground">
             {mode === "signin"
               ? "Welcome back. Enter your details to continue."
-              : "Tell us how you plan to use Dispatchly."}
+              : "Tell us how you plan to use GOSwift."}
           </p>
 
           <form onSubmit={handleSubmit} className="mt-8 space-y-4">

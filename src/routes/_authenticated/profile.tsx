@@ -14,10 +14,10 @@ import { useAuth } from "@/lib/supabase/auth";
 export const Route = createFileRoute("/_authenticated/profile")({
   head: () => ({
     meta: [
-      { title: "Your profile — Dispatchly" },
-      { name: "description", content: "Update your Dispatchly contact details and account info." },
-      { property: "og:title", content: "Your profile — Dispatchly" },
-      { property: "og:description", content: "Update your Dispatchly contact details." },
+      { title: "Your profile — GOSwift" },
+      { name: "description", content: "Update your GOSwift contact details and account info." },
+      { property: "og:title", content: "Your profile — GOSwift" },
+      { property: "og:description", content: "Update your GOSwift contact details." },
     ],
   }),
   component: ProfilePage,

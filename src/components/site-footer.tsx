@@ -10,7 +10,7 @@ export function SiteFooter() {
             <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-foreground/10">
               <Package className="h-5 w-5" />
             </span>
-            <span className="font-display text-lg font-bold">Dispatchly</span>
+            <span className="font-display text-lg font-bold">GOSwift</span>
           </div>
           <p className="mt-3 max-w-sm text-sm text-primary-foreground/70">
             A marketplace connecting businesses and individuals with verified delivery companies.
@@ -47,7 +47,7 @@ export function SiteFooter() {
         </div>
       </div>
       <div className="border-t border-primary-foreground/10 px-4 py-5 text-center text-xs text-primary-foreground/60">
-        &copy; {new Date().getFullYear()} Dispatchly. All rights reserved.
+        &copy; {new Date().getFullYear()} GOSwift. All rights reserved.
       </div>
     </footer>
   );

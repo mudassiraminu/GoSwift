@@ -9,16 +9,16 @@ import { Card, CardContent } from "@/components/ui/card";
 export const Route = createFileRoute("/for-providers")({
   head: () => ({
     meta: [
-      { title: "For delivery companies — Dispatchly" },
+      { title: "For delivery companies — GOSwift" },
       {
         name: "description",
         content:
-          "Get verified, receive delivery jobs in your service areas, manage riders and get paid on Dispatchly.",
+          "Get verified, receive delivery jobs in your service areas, manage riders and get paid on GOSwift.",
       },
-      { property: "og:title", content: "For delivery companies — Dispatchly" },
+      { property: "og:title", content: "For delivery companies — GOSwift" },
       {
         property: "og:description",
-        content: "Get verified, win delivery jobs and manage your riders on Dispatchly.",
+        content: "Get verified, win delivery jobs and manage your riders on GOSwift.",
       },
     ],
   }),
@@ -60,7 +60,7 @@ function ForProvidersPage() {
                 Grow your delivery company with steady, verified demand.
               </h1>
               <p className="mt-5 text-lg text-muted-foreground">
-                Dispatchly sends you delivery jobs from customers in your area. Quote your price,
+                GOSwift sends you delivery jobs from customers in your area. Quote your price,
                 assign a rider, complete the job and get paid.
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">

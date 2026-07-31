@@ -9,12 +9,12 @@ import { useAuth } from "@/lib/supabase/auth";
 export const Route = createFileRoute("/_authenticated/provider")({
   head: () => ({
     meta: [
-      { title: "Provider dashboard — Dispatchly" },
+      { title: "Provider dashboard — GOSwift" },
       {
         name: "description",
         content: "Manage your delivery company: verification, quotes, riders and payouts.",
       },
-      { property: "og:title", content: "Provider dashboard — Dispatchly" },
+      { property: "og:title", content: "Provider dashboard — GOSwift" },
       {
         property: "og:description",
         content: "Manage your delivery company: verification, quotes, riders and payouts.",

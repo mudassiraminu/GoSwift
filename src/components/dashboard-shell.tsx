@@ -83,7 +83,7 @@ export function DashboardShell({
           <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
             <Package className="h-5 w-5" />
           </span>
-          <span className="font-display text-lg font-bold text-sidebar-foreground">Dispatchly</span>
+          <span className="font-display text-lg font-bold text-sidebar-foreground">GOSwift</span>
         </Link>
         {nav}
         <div className="mt-auto border-t border-sidebar-border pt-4">
@@ -112,7 +112,7 @@ export function DashboardShell({
           <div className="absolute inset-y-0 left-0 flex w-72 flex-col bg-sidebar p-4">
             <div className="mb-6 flex items-center justify-between">
               <span className="font-display text-lg font-bold text-sidebar-foreground">
-                Dispatchly
+                GOSwift
               </span>
               <button
                 aria-label="Close menu"
