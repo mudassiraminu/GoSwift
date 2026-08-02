@@ -1,8 +1,9 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { KeyRound, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { AppLogo } from "@/components/app-logo";
 import { SupabaseSetupNotice } from "@/components/supabase-setup-notice";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -72,9 +73,7 @@ function ResetPasswordPage() {
   return (
     <div className="flex min-h-[100dvh] items-center justify-center bg-secondary/50 px-4">
       <div className="gs-pop w-full max-w-sm rounded-3xl border border-border bg-card p-8 shadow-xl shadow-primary/5">
-        <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
-          <KeyRound className="h-5 w-5" />
-        </span>
+        <AppLogo className="h-12 w-12 rounded-2xl shadow-lg shadow-primary/20" />
         <h1 className="mt-5 font-display text-2xl font-bold text-card-foreground">
           Set a new password
         </h1>

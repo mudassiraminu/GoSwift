@@ -1,8 +1,9 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Loader2, Package } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
+import { AppLogo } from "@/components/app-logo";
 import { SupabaseSetupNotice } from "@/components/supabase-setup-notice";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -143,9 +144,7 @@ function AuthPage() {
     <div className="grid min-h-screen lg:grid-cols-2">
       <div className="hidden flex-col justify-between bg-primary p-12 text-primary-foreground lg:flex">
         <Link to="/" className="flex items-center gap-2">
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-foreground/10">
-            <Package className="h-5 w-5" />
-          </span>
+          <AppLogo className="h-9 w-9 rounded-lg" labelled={false} />
           <span className="font-display text-lg font-bold">GOSwift</span>
         </Link>
         <div>
@@ -165,9 +164,7 @@ function AuthPage() {
       <div className="flex items-center justify-center bg-background px-4 py-12">
         <div className="w-full max-w-sm">
           <Link to="/" className="mb-8 flex items-center gap-2 lg:hidden">
-            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <Package className="h-5 w-5" />
-            </span>
+            <AppLogo className="h-9 w-9 rounded-lg" labelled={false} />
             <span className="font-display text-lg font-bold">GOSwift</span>
           </Link>
 
