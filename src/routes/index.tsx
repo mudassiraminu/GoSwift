@@ -1,15 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import {
-  BadgeCheck,
-  Box,
-  ChevronRight,
-  MapPin,
-  Package,
-  ShieldCheck,
-  Truck,
-} from "lucide-react";
+import { BadgeCheck, ChevronRight, MapPin, ShieldCheck, Truck } from "lucide-react";
 import { useEffect } from "react";
 
+import { AppLogo } from "@/components/app-logo";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/supabase/auth";
 
@@ -32,7 +25,7 @@ export const Route = createFileRoute("/")({
   component: SplashPage,
 });
 
-/** Hero built from real vector icons — no generated artwork. */
+/** Hero centred on the GOSwift brand mark, with vector motion detail around it. */
 function HeroArt() {
   return (
     <div className="relative mt-4 flex h-56 w-full max-w-xs items-center justify-center">
@@ -46,17 +39,10 @@ function HeroArt() {
         <MapPin className="relative h-6 w-6 text-primary" />
       </span>
 
-      {/* floating parcel stack */}
-      <div className="gs-float relative flex h-40 w-40 items-center justify-center rounded-[2rem] bg-primary/10 backdrop-blur">
-        <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-primary text-primary-foreground shadow-2xl shadow-primary/40">
-          <Package className="h-12 w-12" strokeWidth={1.6} />
-        </div>
-        <span className="gs-pop gs-delay-200 absolute -left-5 bottom-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-card text-primary shadow-lg">
-          <Box className="h-6 w-6" />
-        </span>
-        <span className="gs-pop gs-delay-400 absolute -right-4 top-2 flex h-11 w-11 items-center justify-center rounded-2xl bg-card text-success shadow-lg">
-          <BadgeCheck className="h-6 w-6" />
-        </span>
+      {/* brand mark */}
+      <div className="gs-float relative flex h-44 w-44 items-center justify-center">
+        <span className="absolute inset-0 rounded-[2.5rem] bg-primary/20 blur-2xl" />
+        <AppLogo className="relative h-44 w-44 drop-shadow-2xl" />
       </div>
     </div>
   );
