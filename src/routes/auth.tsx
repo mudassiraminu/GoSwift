@@ -143,9 +143,7 @@ function AuthPage() {
     <div className="grid min-h-screen lg:grid-cols-2">
       <div className="hidden flex-col justify-between bg-primary p-12 text-primary-foreground lg:flex">
         <Link to="/" className="flex items-center gap-2">
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-foreground/10">
-            <Package className="h-5 w-5" />
-          </span>
+          <AppLogo className="h-9 w-9 rounded-lg" labelled={false} />
           <span className="font-display text-lg font-bold">GOSwift</span>
         </Link>
         <div>
