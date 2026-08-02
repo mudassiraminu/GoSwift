@@ -164,9 +164,7 @@ function AuthPage() {
       <div className="flex items-center justify-center bg-background px-4 py-12">
         <div className="w-full max-w-sm">
           <Link to="/" className="mb-8 flex items-center gap-2 lg:hidden">
-            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <Package className="h-5 w-5" />
-            </span>
+            <AppLogo className="h-9 w-9 rounded-lg" labelled={false} />
             <span className="font-display text-lg font-bold">GOSwift</span>
           </Link>
 
