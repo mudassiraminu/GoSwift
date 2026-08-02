@@ -1,7 +1,8 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Menu, Package, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { useState } from "react";
 
+import { AppLogo } from "@/components/app-logo";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/supabase/auth";
 import { cn } from "@/lib/utils";
