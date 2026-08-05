@@ -368,9 +368,11 @@ function AuthPage() {
                     id="fullName"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
+                    onBlur={() => markTouched("fullName")}
+                    aria-invalid={!!show("fullName")}
                     placeholder="Alex Morgan"
-                    required
                   />
+                  <FieldError message={show("fullName")} />
                 </div>
                 <div className="space-y-2">
                   <Label>I am signing up as</Label>
@@ -404,12 +406,19 @@ function AuthPage() {
                   inputMode="numeric"
                   autoComplete="one-time-code"
                   value={otp}
-                  onChange={(e) => setOtp(e.target.value)}
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  onBlur={() => markTouched("otp")}
+                  aria-invalid={!!show("otp")}
                   placeholder="123456"
-                  maxLength={8}
+                  maxLength={6}
                   className="text-center text-lg tracking-[0.4em]"
-                  required
                 />
+                <FieldError message={show("otp")} />
+                {!show("otp") ? (
+                  <p className="text-xs text-muted-foreground">
+                    The SMS can take up to a minute to arrive.
+                  </p>
+                ) : null}
               </div>
             ) : null}
 
@@ -419,12 +428,15 @@ function AuthPage() {
                 <Input
                   id="email"
                   type="email"
+                  inputMode="email"
                   autoComplete="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  onBlur={() => markTouched("email")}
+                  aria-invalid={!!show("email")}
                   placeholder="you@company.com"
-                  required
                 />
+                <FieldError message={show("email")} />
               </div>
             ) : null}
 
@@ -434,15 +446,24 @@ function AuthPage() {
                 <Input
                   id="phone"
                   type="tel"
+                  inputMode="tel"
                   autoComplete="tel"
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onFocus={() => {
+                    if (!phone) setPhone("+234 ");
+                  }}
+                  onChange={(e) => setPhone(e.target.value.replace(/[^\d+\s-]/g, ""))}
+                  onBlur={() => markTouched("phone")}
+                  aria-invalid={!!show("phone")}
                   placeholder="+234 801 234 5678"
-                  required
                 />
-                <p className="text-xs text-muted-foreground">
-                  Include your country code, e.g. +234 for Nigeria.
-                </p>
+                <FieldError message={show("phone")} />
+                {!show("phone") ? (
+                  <p className="text-xs text-muted-foreground">
+                    Include your country code, e.g. +234 for Nigeria. We&apos;ll text a 6-digit code
+                    to confirm it&apos;s you.
+                  </p>
+                ) : null}
               </div>
             ) : null}
 
@@ -450,7 +471,7 @@ function AuthPage() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password">Password</Label>
-                  {mode === "signin" && method === "email" ? (
+                  {mode === "signin" ? (
                     <button
                       type="button"
                       className="text-xs font-medium text-primary hover:underline"
@@ -460,18 +481,61 @@ function AuthPage() {
                     </button>
                   ) : null}
                 </div>
-                <Input
-                  id="password"
-                  type="password"
-                  autoComplete={mode === "signin" ? "current-password" : "new-password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  minLength={6}
-                  required
-                />
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    autoComplete={mode === "signin" ? "current-password" : "new-password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    onBlur={() => markTouched("password")}
+                    aria-invalid={!!show("password")}
+                    placeholder="••••••••"
+                    className="pr-11"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    aria-pressed={showPassword}
+                    className="tap-scale absolute inset-y-0 right-0 flex w-11 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+                <FieldError message={show("password")} />
+                {mode === "signup" && password ? (
+                  <div className="space-y-1.5 pt-0.5">
+                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-secondary">
+                      <div
+                        className={cn(
+                          "h-full rounded-full transition-all duration-300",
+                          STRENGTH[passwordScore(password)].bar,
+                          STRENGTH[passwordScore(password)].width,
+                        )}
+                      />
+                    </div>
+                    <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      {passwordScore(password) >= 3 ? (
+                        <Check className="h-3.5 w-3.5 text-success" />
+                      ) : null}
+                      Strength: {STRENGTH[passwordScore(password)].label} &middot; 8+ characters with
+                      letters and numbers
+                    </p>
+                  </div>
+                ) : null}
+                {mode === "signin" && !password && !show("password") ? (
+                  <p className="text-xs text-muted-foreground">
+                    Use the password you set when you created your GOSwift account.
+                  </p>
+                ) : null}
               </div>
             ) : null}
+
 
             <Button type="submit" className="h-12 w-full rounded-xl" disabled={submitting}>
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
