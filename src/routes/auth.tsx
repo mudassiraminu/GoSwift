@@ -62,6 +62,66 @@ function normalizePhone(raw: string) {
   return digits.startsWith("+") ? "+" + digits.slice(1).replace(/\+/g, "") : "+" + digits;
 }
 
+/** Digits only, ignoring the leading +. */
+function phoneDigits(raw: string) {
+  return raw.replace(/\D/g, "");
+}
+
+function validateEmail(value: string) {
+  const v = value.trim();
+  if (!v) return "Enter your email address.";
+  if (!/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(v)) return "That doesn't look like a valid email.";
+  return undefined;
+}
+
+function validatePhone(value: string) {
+  const raw = value.trim();
+  if (!raw) return "Enter your phone number.";
+  if (!raw.startsWith("+")) return "Start with your country code, e.g. +234.";
+  const digits = phoneDigits(raw);
+  if (digits.length < 8) return "That number looks too short.";
+  if (digits.length > 15) return "That number looks too long.";
+  return undefined;
+}
+
+function validatePassword(value: string, mode: Mode) {
+  if (!value) return "Enter your password.";
+  if (value.length < 6) return "Password must be at least 6 characters.";
+  if (mode === "signup") {
+    if (value.length < 8) return "Use at least 8 characters for a new account.";
+    if (!/[a-zA-Z]/.test(value) || !/\d/.test(value))
+      return "Mix letters and numbers to make it harder to guess.";
+  }
+  return undefined;
+}
+
+function passwordScore(value: string) {
+  let score = 0;
+  if (value.length >= 8) score++;
+  if (/[a-z]/.test(value) && /[A-Z]/.test(value)) score++;
+  if (/\d/.test(value)) score++;
+  if (/[^\w\s]/.test(value)) score++;
+  return score;
+}
+
+const STRENGTH = [
+  { label: "Too weak", bar: "bg-destructive", width: "w-1/4" },
+  { label: "Weak", bar: "bg-destructive", width: "w-1/4" },
+  { label: "Fair", bar: "bg-warning", width: "w-2/4" },
+  { label: "Good", bar: "bg-primary", width: "w-3/4" },
+  { label: "Strong", bar: "bg-success", width: "w-full" },
+];
+
+function FieldError({ message }: { message?: string }) {
+  if (!message) return null;
+  return (
+    <p className="flex items-center gap-1.5 text-xs font-medium text-destructive" role="alert">
+      <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+      {message}
+    </p>
+  );
+}
+
 function AuthPage() {
   const { mode: initialMode, redirect: rawRedirect } = Route.useSearch();
   // Only same-origin absolute paths are honoured (no open redirects).
