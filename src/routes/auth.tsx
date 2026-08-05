@@ -138,8 +138,24 @@ function AuthPage() {
   const [fullName, setFullName] = useState("");
   const [role, setRole] = useState<Exclude<AppRole, "admin">>("customer");
   const [submitting, setSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
   const { configured, user, loading, homePath, refresh } = useAuth();
   const navigate = useNavigate();
+
+  const errors: Record<string, string | undefined> = {};
+  if (mode === "signup" && !fullName.trim()) errors.fullName = "Tell us your name.";
+  if (mode === "forgot" || (mode !== "verify" && method === "email"))
+    errors.email = validateEmail(email);
+  if (mode !== "verify" && mode !== "forgot" && method === "phone")
+    errors.phone = validatePhone(phone);
+  if (mode !== "verify" && mode !== "forgot") errors.password = validatePassword(password, mode);
+  if (mode === "verify" && phoneDigits(otp).length !== 6)
+    errors.otp = "Enter the 6-digit code from the SMS.";
+
+  const show = (field: string) => (touched[field] ? errors[field] : undefined);
+  const markTouched = (field: string) => setTouched((t) => ({ ...t, [field]: true }));
+  const hasErrors = Object.values(errors).some(Boolean);
 
   useEffect(() => {
     if (!loading && user && mode !== "forgot") {
