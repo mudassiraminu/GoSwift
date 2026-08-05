@@ -2,12 +2,15 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   Bell,
   Box,
+  CheckCircle2,
   ChevronRight,
+  Clock,
   MapPin,
   PackagePlus,
   Search,
   ScanLine,
   Truck,
+  Zap,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -103,22 +106,58 @@ function CustomerHome() {
         <div className="space-y-6 px-5 pb-6">
           {/* Quick actions */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="tap-scale relative overflow-hidden rounded-3xl bg-primary p-4 text-primary-foreground shadow-lg shadow-primary/25">
+            <button
+              type="button"
+              className="tap-scale relative overflow-hidden rounded-3xl bg-primary p-4 text-left text-primary-foreground shadow-lg shadow-primary/25"
+            >
+              <span
+                aria-hidden
+                className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full bg-primary-foreground/10"
+              />
               <PackagePlus className="h-7 w-7" />
-              <p className="mt-6 font-display text-base font-semibold leading-tight">
+              <span className="mt-6 block font-display text-base font-semibold leading-tight">
                 New
                 <br />
                 Delivery
-              </p>
-            </div>
-            <div className="tap-scale relative overflow-hidden rounded-3xl bg-secondary p-4 text-secondary-foreground">
+              </span>
+            </button>
+            <button
+              type="button"
+              className="tap-scale relative overflow-hidden rounded-3xl bg-secondary p-4 text-left text-secondary-foreground"
+            >
+              <span
+                aria-hidden
+                className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full bg-primary/10"
+              />
               <Truck className="h-7 w-7 text-primary" />
-              <p className="mt-6 font-display text-base font-semibold leading-tight">
+              <span className="mt-6 block font-display text-base font-semibold leading-tight">
                 Track
                 <br />
                 Package
-              </p>
-            </div>
+              </span>
+            </button>
+          </div>
+
+          {/* Stats strip */}
+          <div className="grid grid-cols-3 gap-3 rounded-3xl bg-card p-4 shadow-sm">
+            {[
+              { label: "In transit", value: "0", icon: Truck },
+              { label: "Delivered", value: "0", icon: CheckCircle2 },
+              { label: "Drafts", value: "0", icon: Clock },
+            ].map((s) => {
+              const Icon = s.icon;
+              return (
+                <div key={s.label} className="text-center">
+                  <span className="mx-auto flex h-9 w-9 items-center justify-center rounded-xl bg-secondary text-primary">
+                    <Icon className="h-4 w-4" />
+                  </span>
+                  <p className="mt-2 font-display text-lg font-bold text-card-foreground">
+                    {s.value}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">{s.label}</p>
+                </div>
+              );
+            })}
           </div>
 
           {/* Current shipment */}
@@ -154,6 +193,34 @@ function CustomerHome() {
                 ))}
               </ul>
             )}
+          </section>
+
+          {/* Services */}
+          <section>
+            <h2 className="font-display text-base font-bold text-foreground">Services</h2>
+            <div className="mt-3 grid grid-cols-3 gap-3">
+              {[
+                { label: "Same day", icon: Zap },
+                { label: "Bulk", icon: Box },
+                { label: "Nearby", icon: MapPin },
+              ].map((s) => {
+                const Icon = s.icon;
+                return (
+                  <button
+                    key={s.label}
+                    type="button"
+                    className="tap-scale rounded-2xl bg-secondary p-3 text-center"
+                  >
+                    <span className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-card text-primary">
+                      <Icon className="h-5 w-5" />
+                    </span>
+                    <span className="mt-2 block text-[11px] font-medium text-secondary-foreground">
+                      {s.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </section>
 
           {/* Profile nudge */}
