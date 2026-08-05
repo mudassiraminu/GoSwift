@@ -188,6 +188,11 @@ function AuthPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (hasErrors) {
+      setTouched({ fullName: true, email: true, phone: true, password: true, otp: true });
+      toast.error(Object.values(errors).find(Boolean) ?? "Please check the form.");
+      return;
+    }
     setSubmitting(true);
     try {
       if (mode === "verify") {
