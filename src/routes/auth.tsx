@@ -1,5 +1,14 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Loader2, Mail, ShieldCheck, Smartphone } from "lucide-react";
+import {
+  AlertCircle,
+  Check,
+  Eye,
+  EyeOff,
+  Loader2,
+  Mail,
+  ShieldCheck,
+  Smartphone,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -53,6 +62,66 @@ function normalizePhone(raw: string) {
   return digits.startsWith("+") ? "+" + digits.slice(1).replace(/\+/g, "") : "+" + digits;
 }
 
+/** Digits only, ignoring the leading +. */
+function phoneDigits(raw: string) {
+  return raw.replace(/\D/g, "");
+}
+
+function validateEmail(value: string) {
+  const v = value.trim();
+  if (!v) return "Enter your email address.";
+  if (!/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(v)) return "That doesn't look like a valid email.";
+  return undefined;
+}
+
+function validatePhone(value: string) {
+  const raw = value.trim();
+  if (!raw) return "Enter your phone number.";
+  if (!raw.startsWith("+")) return "Start with your country code, e.g. +234.";
+  const digits = phoneDigits(raw);
+  if (digits.length < 8) return "That number looks too short.";
+  if (digits.length > 15) return "That number looks too long.";
+  return undefined;
+}
+
+function validatePassword(value: string, mode: Mode) {
+  if (!value) return "Enter your password.";
+  if (value.length < 6) return "Password must be at least 6 characters.";
+  if (mode === "signup") {
+    if (value.length < 8) return "Use at least 8 characters for a new account.";
+    if (!/[a-zA-Z]/.test(value) || !/\d/.test(value))
+      return "Mix letters and numbers to make it harder to guess.";
+  }
+  return undefined;
+}
+
+function passwordScore(value: string) {
+  let score = 0;
+  if (value.length >= 8) score++;
+  if (/[a-z]/.test(value) && /[A-Z]/.test(value)) score++;
+  if (/\d/.test(value)) score++;
+  if (/[^\w\s]/.test(value)) score++;
+  return score;
+}
+
+const STRENGTH = [
+  { label: "Too weak", bar: "bg-destructive", width: "w-1/4" },
+  { label: "Weak", bar: "bg-destructive", width: "w-1/4" },
+  { label: "Fair", bar: "bg-warning", width: "w-2/4" },
+  { label: "Good", bar: "bg-primary", width: "w-3/4" },
+  { label: "Strong", bar: "bg-success", width: "w-full" },
+];
+
+function FieldError({ message }: { message?: string }) {
+  if (!message) return null;
+  return (
+    <p className="flex items-center gap-1.5 text-xs font-medium text-destructive" role="alert">
+      <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+      {message}
+    </p>
+  );
+}
+
 function AuthPage() {
   const { mode: initialMode, redirect: rawRedirect } = Route.useSearch();
   // Only same-origin absolute paths are honoured (no open redirects).
@@ -69,8 +138,24 @@ function AuthPage() {
   const [fullName, setFullName] = useState("");
   const [role, setRole] = useState<Exclude<AppRole, "admin">>("customer");
   const [submitting, setSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
   const { configured, user, loading, homePath, refresh } = useAuth();
   const navigate = useNavigate();
+
+  const errors: Record<string, string | undefined> = {};
+  if (mode === "signup" && !fullName.trim()) errors.fullName = "Tell us your name.";
+  if (mode === "forgot" || (mode !== "verify" && method === "email"))
+    errors.email = validateEmail(email);
+  if (mode !== "verify" && mode !== "forgot" && method === "phone")
+    errors.phone = validatePhone(phone);
+  if (mode !== "verify" && mode !== "forgot") errors.password = validatePassword(password, mode);
+  if (mode === "verify" && phoneDigits(otp).length !== 6)
+    errors.otp = "Enter the 6-digit code from the SMS.";
+
+  const show = (field: string) => (touched[field] ? errors[field] : undefined);
+  const markTouched = (field: string) => setTouched((t) => ({ ...t, [field]: true }));
+  const hasErrors = Object.values(errors).some(Boolean);
 
   useEffect(() => {
     if (!loading && user && mode !== "forgot") {
@@ -103,6 +188,11 @@ function AuthPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (hasErrors) {
+      setTouched({ fullName: true, email: true, phone: true, password: true, otp: true });
+      toast.error(Object.values(errors).find(Boolean) ?? "Please check the form.");
+      return;
+    }
     setSubmitting(true);
     try {
       if (mode === "verify") {
@@ -278,9 +368,11 @@ function AuthPage() {
                     id="fullName"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
+                    onBlur={() => markTouched("fullName")}
+                    aria-invalid={!!show("fullName")}
                     placeholder="Alex Morgan"
-                    required
                   />
+                  <FieldError message={show("fullName")} />
                 </div>
                 <div className="space-y-2">
                   <Label>I am signing up as</Label>
@@ -314,12 +406,19 @@ function AuthPage() {
                   inputMode="numeric"
                   autoComplete="one-time-code"
                   value={otp}
-                  onChange={(e) => setOtp(e.target.value)}
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  onBlur={() => markTouched("otp")}
+                  aria-invalid={!!show("otp")}
                   placeholder="123456"
-                  maxLength={8}
+                  maxLength={6}
                   className="text-center text-lg tracking-[0.4em]"
-                  required
                 />
+                <FieldError message={show("otp")} />
+                {!show("otp") ? (
+                  <p className="text-xs text-muted-foreground">
+                    The SMS can take up to a minute to arrive.
+                  </p>
+                ) : null}
               </div>
             ) : null}
 
@@ -329,12 +428,15 @@ function AuthPage() {
                 <Input
                   id="email"
                   type="email"
+                  inputMode="email"
                   autoComplete="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  onBlur={() => markTouched("email")}
+                  aria-invalid={!!show("email")}
                   placeholder="you@company.com"
-                  required
                 />
+                <FieldError message={show("email")} />
               </div>
             ) : null}
 
@@ -344,15 +446,24 @@ function AuthPage() {
                 <Input
                   id="phone"
                   type="tel"
+                  inputMode="tel"
                   autoComplete="tel"
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onFocus={() => {
+                    if (!phone) setPhone("+234 ");
+                  }}
+                  onChange={(e) => setPhone(e.target.value.replace(/[^\d+\s-]/g, ""))}
+                  onBlur={() => markTouched("phone")}
+                  aria-invalid={!!show("phone")}
                   placeholder="+234 801 234 5678"
-                  required
                 />
-                <p className="text-xs text-muted-foreground">
-                  Include your country code, e.g. +234 for Nigeria.
-                </p>
+                <FieldError message={show("phone")} />
+                {!show("phone") ? (
+                  <p className="text-xs text-muted-foreground">
+                    Include your country code, e.g. +234 for Nigeria. We&apos;ll text a 6-digit code
+                    to confirm it&apos;s you.
+                  </p>
+                ) : null}
               </div>
             ) : null}
 
@@ -360,7 +471,7 @@ function AuthPage() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password">Password</Label>
-                  {mode === "signin" && method === "email" ? (
+                  {mode === "signin" ? (
                     <button
                       type="button"
                       className="text-xs font-medium text-primary hover:underline"
@@ -370,18 +481,61 @@ function AuthPage() {
                     </button>
                   ) : null}
                 </div>
-                <Input
-                  id="password"
-                  type="password"
-                  autoComplete={mode === "signin" ? "current-password" : "new-password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  minLength={6}
-                  required
-                />
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    autoComplete={mode === "signin" ? "current-password" : "new-password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    onBlur={() => markTouched("password")}
+                    aria-invalid={!!show("password")}
+                    placeholder="••••••••"
+                    className="pr-11"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    aria-pressed={showPassword}
+                    className="tap-scale absolute inset-y-0 right-0 flex w-11 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+                <FieldError message={show("password")} />
+                {mode === "signup" && password ? (
+                  <div className="space-y-1.5 pt-0.5">
+                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-secondary">
+                      <div
+                        className={cn(
+                          "h-full rounded-full transition-all duration-300",
+                          STRENGTH[passwordScore(password)].bar,
+                          STRENGTH[passwordScore(password)].width,
+                        )}
+                      />
+                    </div>
+                    <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      {passwordScore(password) >= 3 ? (
+                        <Check className="h-3.5 w-3.5 text-success" />
+                      ) : null}
+                      Strength: {STRENGTH[passwordScore(password)].label} &middot; 8+ characters with
+                      letters and numbers
+                    </p>
+                  </div>
+                ) : null}
+                {mode === "signin" && !password && !show("password") ? (
+                  <p className="text-xs text-muted-foreground">
+                    Use the password you set when you created your GOSwift account.
+                  </p>
+                ) : null}
               </div>
             ) : null}
+
 
             <Button type="submit" className="h-12 w-full rounded-xl" disabled={submitting}>
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
