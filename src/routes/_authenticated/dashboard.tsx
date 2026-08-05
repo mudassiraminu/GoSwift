@@ -2,12 +2,15 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   Bell,
   Box,
+  CheckCircle2,
   ChevronRight,
+  Clock,
   MapPin,
   PackagePlus,
   Search,
   ScanLine,
   Truck,
+  Zap,
 } from "lucide-react";
 import { useState } from "react";
 
