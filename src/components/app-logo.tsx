@@ -1,4 +1,4 @@
-import logoAsset from "@/assets/goswift-logo.png.asset.json";
+import logoAsset from "@/assets/goswift-icon.png.asset.json";
 import { cn } from "@/lib/utils";
 
 interface AppLogoProps {
