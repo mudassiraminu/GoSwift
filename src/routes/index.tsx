@@ -42,7 +42,7 @@ function HeroArt() {
       {/* brand mark */}
       <div className="gs-float relative flex h-44 w-44 items-center justify-center">
         <span className="absolute inset-0 rounded-[2.5rem] bg-primary/20 blur-2xl" />
-        <AppLogo className="relative h-44 w-44 drop-shadow-2xl" />
+        <AppLogo className="relative h-44 w-44" />
       </div>
     </div>
   );
