@@ -1,6 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import type { LucideIcon } from "lucide-react";
-import { Home, Package, PackagePlus, Receipt, User } from "lucide-react";
+import { Home, Package, Plus, Radar, User } from "lucide-react";
 import type { ReactNode } from "react";
 import { toast } from "sonner";
 
@@ -14,9 +14,9 @@ interface TabItem {
 
 const tabs: TabItem[] = [
   { label: "Home", icon: Home, to: "/dashboard" },
-  { label: "Shipments", icon: Package },
-  { label: "New", icon: PackagePlus },
-  { label: "Activity", icon: Receipt },
+  { label: "Shipment", icon: Package },
+  { label: "New", icon: Plus },
+  { label: "Tracking", icon: Radar },
   { label: "Profile", icon: User, to: "/profile" },
 ];
 
@@ -34,38 +34,42 @@ export function MobileAppShell({ children, header }: MobileAppShellProps) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   return (
-    <div className="flex min-h-[100dvh] justify-center bg-secondary/60">
-      <div className="relative flex h-[100dvh] w-full max-w-md flex-col overflow-hidden bg-background shadow-xl shadow-primary/5">
+    <div className="flex min-h-[100dvh] justify-center bg-accent/25">
+      <div className="relative flex h-[100dvh] w-full max-w-md flex-col overflow-hidden bg-background shadow-xl shadow-foreground/5">
         {header}
         <div key={pathname} className="gs-rise flex min-h-0 flex-1 flex-col">
           {children}
         </div>
 
-        {/* Bottom tab bar */}
-        <nav className="pb-safe relative z-20 border-t border-border/70 bg-card/95 backdrop-blur">
-          <ul className="flex items-end justify-between px-4 pt-2">
+        {/* Floating pill tab bar */}
+        <nav className="pb-safe pointer-events-none absolute inset-x-0 bottom-0 z-30 px-5">
+          <ul className="pointer-events-auto mx-auto mb-3 flex max-w-sm items-center justify-between rounded-full bg-sidebar px-3 py-2 shadow-[0_18px_40px_-16px_oklch(0.2_0.012_50_/_0.55)]">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const active = tab.to === pathname;
               const center = tab.label === "New";
 
               const inner = center ? (
-                <span className="tap-scale -mt-7 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/35 transition-shadow hover:shadow-primary/50">
+                <span className="tap-scale mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/40">
                   <Icon className="h-6 w-6" />
                 </span>
               ) : (
                 <span
                   className={cn(
-                    "tap-scale flex flex-col items-center gap-1 rounded-xl px-3 py-1.5 text-[10px] font-medium transition-colors duration-200",
-                    active ? "text-primary" : "text-muted-foreground",
+                    "tap-scale flex flex-col items-center gap-1 rounded-full px-2 py-1 text-[10px] font-medium transition-colors duration-200",
+                    active
+                      ? "text-sidebar-primary-foreground"
+                      : "text-sidebar-foreground/60",
                   )}
                 >
-                  <Icon
+                  <span
                     className={cn(
-                      "h-5 w-5 transition-transform duration-300",
-                      active && "-translate-y-0.5 scale-110",
+                      "flex h-8 w-8 items-center justify-center rounded-full transition-all duration-300",
+                      active && "bg-primary text-primary-foreground",
                     )}
-                  />
+                  >
+                    <Icon className="h-[18px] w-[18px]" />
+                  </span>
                   {tab.label}
                 </span>
               );
