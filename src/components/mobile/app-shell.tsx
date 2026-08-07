@@ -41,7 +41,6 @@ export function MobileAppShell({ children, header }: MobileAppShellProps) {
           {children}
         </div>
 
-        {/* Floating pill tab bar */}
         <nav className="pb-safe pointer-events-none absolute inset-x-0 bottom-0 z-30 px-5">
           <ul className="pointer-events-auto mx-auto mb-3 flex max-w-sm items-center justify-between rounded-full bg-sidebar px-3 py-2 shadow-[0_18px_40px_-16px_oklch(0.2_0.012_50_/_0.55)]">
             {tabs.map((tab) => {
@@ -50,7 +49,7 @@ export function MobileAppShell({ children, header }: MobileAppShellProps) {
               const center = tab.label === "New";
 
               const inner = center ? (
-                <span className="tap-scale mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/40">
+                <span className="tap-scale gs-glow mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/40">
                   <Icon className="h-6 w-6" />
                 </span>
               ) : (
@@ -65,7 +64,7 @@ export function MobileAppShell({ children, header }: MobileAppShellProps) {
                   <span
                     className={cn(
                       "flex h-8 w-8 items-center justify-center rounded-full transition-all duration-300",
-                      active && "bg-primary text-primary-foreground",
+                      active && "bg-primary text-primary-foreground scale-105",
                     )}
                   >
                     <Icon className="h-[18px] w-[18px]" />

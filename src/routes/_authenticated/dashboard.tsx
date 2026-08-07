@@ -65,7 +65,7 @@ function CustomerHome() {
     <MobileAppShell
       header={
         <header className="pt-safe z-20 bg-background px-5 pb-3">
-          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+          <div className="gs-rise grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
             <div className="min-w-0">
               <p className="truncate font-display text-lg font-bold text-foreground">
                 Hi {firstName}
@@ -83,7 +83,7 @@ function CustomerHome() {
             </button>
           </div>
 
-          <div className="mt-3 flex items-center gap-2">
+          <div className="gs-rise mt-3 flex items-center gap-2 gs-delay-100">
             <div className="flex min-w-0 flex-1 items-center gap-2 rounded-2xl bg-secondary px-4 py-3">
               <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
               <input
@@ -103,8 +103,7 @@ function CustomerHome() {
       }
     >
       <PullToRefresh onRefresh={handleRefresh}>
-        <div className="space-y-6 px-5 pb-32">
-          {/* Quick actions */}
+        <div className="gs-stagger space-y-6 px-5 pb-32">
           <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
@@ -138,7 +137,6 @@ function CustomerHome() {
             </button>
           </div>
 
-          {/* Stats strip */}
           <div className="grid grid-cols-3 gap-3 rounded-3xl bg-card p-4 shadow-sm">
             {[
               { label: "In transit", value: "0", icon: Truck },
@@ -160,7 +158,6 @@ function CustomerHome() {
             })}
           </div>
 
-          {/* Current shipment */}
           <section>
             <div className="flex items-center justify-between">
               <h2 className="font-display text-base font-bold text-foreground">Current shipment</h2>
@@ -171,7 +168,7 @@ function CustomerHome() {
 
             {shipments.length === 0 ? (
               <div className="mt-3 rounded-3xl border border-dashed border-border bg-card p-8 text-center">
-                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-secondary">
+                <div className="gs-pop mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-secondary">
                   <Box className="h-6 w-6 text-primary" />
                 </div>
                 <h3 className="mt-4 font-display text-base font-semibold text-card-foreground">
@@ -195,7 +192,6 @@ function CustomerHome() {
             )}
           </section>
 
-          {/* Services */}
           <section>
             <h2 className="font-display text-base font-bold text-foreground">Services</h2>
             <div className="mt-3 grid grid-cols-3 gap-3">
@@ -223,7 +219,6 @@ function CustomerHome() {
             </div>
           </section>
 
-          {/* Profile nudge */}
           <Link
             to="/profile"
             className="tap-scale flex items-center gap-3 rounded-3xl bg-secondary p-4"
