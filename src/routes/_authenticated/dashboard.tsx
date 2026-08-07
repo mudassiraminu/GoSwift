@@ -103,7 +103,7 @@ function CustomerHome() {
       }
     >
       <PullToRefresh onRefresh={handleRefresh}>
-        <div className="space-y-6 px-5 pb-6">
+        <div className="space-y-6 px-5 pb-32">
           {/* Quick actions */}
           <div className="grid grid-cols-2 gap-3">
             <button

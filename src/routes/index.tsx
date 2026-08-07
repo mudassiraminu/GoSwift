@@ -42,7 +42,7 @@ function HeroArt() {
       {/* brand mark */}
       <div className="gs-float relative flex h-44 w-44 items-center justify-center">
         <span className="absolute inset-0 rounded-[2.5rem] bg-primary/20 blur-2xl" />
-        <AppLogo className="relative h-44 w-44 drop-shadow-2xl" />
+        <AppLogo className="relative h-44 w-44" />
       </div>
     </div>
   );
@@ -75,7 +75,7 @@ function SplashPage() {
           <HeroArt />
         </section>
 
-        <section className="pb-safe gs-rise gs-delay-100 relative -mt-8 rounded-t-[2rem] bg-card px-6 pt-8 shadow-[0_-12px_40px_-24px_oklch(0.62_0.19_290_/_0.6)]">
+        <section className="pb-safe gs-rise gs-delay-100 relative -mt-8 rounded-t-[2rem] bg-card px-6 pt-8 shadow-[0_-12px_40px_-24px_oklch(0.64_0.19_36_/_0.5)]">
           <span className="mx-auto mb-6 block h-1.5 w-12 rounded-full bg-border" />
           <h2 className="text-center font-display text-2xl font-bold leading-snug text-card-foreground">
             Receive the world at
