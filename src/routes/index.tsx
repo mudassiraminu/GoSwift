@@ -37,24 +37,20 @@ export const Route = createFileRoute("/")({
 function HeroArt() {
   return (
     <div className="relative mt-2 flex h-52 w-full max-w-[17rem] items-center justify-center sm:h-56">
-      {/* Soft road line */}
       <div className="absolute inset-x-4 bottom-6 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
 
-      {/* Drifting courier */}
       <span className="gs-drift absolute bottom-7 left-0 flex items-center gap-1">
         <Truck className="h-6 w-6 text-primary" strokeWidth={2.25} />
         <span className="h-1.5 w-1.5 rounded-full bg-primary/50" />
       </span>
 
-      {/* Destination pin with pulse */}
       <span className="absolute bottom-3 right-3 flex h-11 w-11 items-center justify-center">
         <span className="gs-ring absolute h-11 w-11 rounded-full bg-primary/35" />
         <span className="relative flex h-9 w-9 items-center justify-center rounded-full bg-card shadow-md shadow-primary/15 ring-1 ring-border">
-          <MapPin className="h-4.5 w-4.5 text-primary" strokeWidth={2.25} />
+          <MapPin className="h-4 w-4 text-primary" strokeWidth={2.25} />
         </span>
       </span>
 
-      {/* Brand mark */}
       <div className="gs-float-slow relative flex h-40 w-40 items-center justify-center sm:h-44 sm:w-44">
         <span className="absolute inset-2 rounded-[2.25rem] bg-primary/15 blur-2xl" />
         <span className="absolute inset-6 rounded-[1.75rem] bg-accent/30 blur-xl" />
@@ -63,6 +59,12 @@ function HeroArt() {
     </div>
   );
 }
+
+const FEATURES = [
+  { icon: BadgeCheck, label: "Verified", delay: "gs-delay-200" },
+  { icon: Package, label: "Tracked", delay: "gs-delay-300" },
+  { icon: ShieldCheck, label: "Secure pay", delay: "gs-delay-400" },
+] as const;
 
 function SplashPage() {
   const { user, loading, homePath } = useAuth();
@@ -74,7 +76,6 @@ function SplashPage() {
     }
   }, [loading, user, homePath, navigate]);
 
-  // Avoid flashing the marketing splash for signed-in users.
   if (loading || user) {
     return (
       <div className="flex min-h-[100dvh] items-center justify-center bg-background">
@@ -89,7 +90,6 @@ function SplashPage() {
   return (
     <div className="flex min-h-[100dvh] justify-center bg-secondary/50">
       <main className="relative flex h-[100dvh] w-full max-w-md flex-col overflow-hidden bg-background shadow-xl shadow-primary/5">
-        {/* Hero */}
         <section className="pt-safe relative flex flex-1 flex-col items-center justify-center overflow-hidden bg-gradient-to-b from-accent/30 via-primary/8 to-background px-6">
           <div className="pointer-events-none absolute -left-20 top-8 h-56 w-56 rounded-full bg-primary/12 blur-3xl gs-blob" />
           <div className="pointer-events-none absolute -right-16 top-28 h-48 w-48 rounded-full bg-accent/30 blur-3xl gs-blob gs-delay-400" />
@@ -114,7 +114,6 @@ function SplashPage() {
           <HeroArt />
         </section>
 
-        {/* Bottom sheet CTA */}
         <section className="pb-safe gs-slide-up relative -mt-6 rounded-t-[1.75rem] bg-card px-6 pt-5 shadow-[0_-16px_48px_-28px_oklch(0.64_0.19_36_/_0.45)]">
           <span className="mx-auto mb-5 block h-1.5 w-10 rounded-full bg-border" />
 
@@ -128,16 +127,12 @@ function SplashPage() {
           </p>
 
           <div className="mt-5 grid grid-cols-3 gap-2">
-            {[
-              { icon: BadgeCheck, label: "Verified" },
-              { icon: Package, label: "Tracked" },
-              { icon: ShieldCheck, label: "Secure pay" },
-            ].map((item, i) => {
+            {FEATURES.map((item) => {
               const Icon = item.icon;
               return (
                 <div
                   key={item.label}
-                  className={`gs-rise flex flex-col items-center gap-1.5 rounded-2xl bg-secondary/80 px-2 py-3 gs-delay-${200 + i * 80}`}
+                  className={`gs-rise flex flex-col items-center gap-1.5 rounded-2xl bg-secondary/80 px-2 py-3 ${item.delay}`}
                 >
                   <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-card text-primary shadow-sm">
                     <Icon className="h-4 w-4" strokeWidth={2.25} />
@@ -175,7 +170,6 @@ function SplashPage() {
             </Link>
           </div>
 
-          {/* Progress dots — single splash for now */}
           <div className="flex justify-center gap-1.5 pb-1" aria-hidden>
             <span className="h-1.5 w-5 rounded-full bg-primary" />
             <span className="h-1.5 w-1.5 rounded-full bg-border" />
