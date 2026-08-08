@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
 import {
   AlertCircle,
   Check,
@@ -18,12 +18,34 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/lib/supabase/client";
-import { ROLE_HOME, useAuth } from "@/lib/supabase/auth";
+import {
+  ROLE_HOME,
+  safeRedirectPath,
+  useAuth,
+  type RoleHomePath,
+} from "@/lib/supabase/auth";
 import type { AppRole } from "@/lib/supabase/types";
 import { cn } from "@/lib/utils";
 
 type Mode = "signin" | "signup" | "forgot" | "verify";
 type Method = "email" | "phone";
+
+const KNOWN_HOME_PATHS = new Set<string>(Object.values(ROLE_HOME));
+
+function resolveDestination(
+  redirectTo: string | undefined,
+  fallback: RoleHomePath,
+): { kind: "home"; path: RoleHomePath } | { kind: "href"; href: string } {
+  if (!redirectTo) return { kind: "home", path: fallback };
+  const pathOnly = redirectTo.split("?")[0]?.split("#")[0] ?? "";
+  if (KNOWN_HOME_PATHS.has(pathOnly) || pathOnly === "/profile") {
+    // Typed routes we can navigate to safely
+    if (pathOnly === "/profile") return { kind: "href", href: redirectTo };
+    return { kind: "home", path: pathOnly as RoleHomePath };
+  }
+  // Other same-origin paths (future routes) via history
+  return { kind: "href", href: redirectTo };
+}
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
@@ -124,11 +146,7 @@ function FieldError({ message }: { message?: string }) {
 
 function AuthPage() {
   const { mode: initialMode, redirect: rawRedirect } = Route.useSearch();
-  // Only same-origin absolute paths are honoured (no open redirects).
-  const redirectTo =
-    rawRedirect && rawRedirect.startsWith("/") && !rawRedirect.startsWith("//")
-      ? rawRedirect
-      : undefined;
+  const redirectTo = safeRedirectPath(rawRedirect);
   const [mode, setMode] = useState<Mode>(initialMode);
   const [method, setMethod] = useState<Method>("email");
   const [email, setEmail] = useState("");
@@ -142,6 +160,7 @@ function AuthPage() {
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const { configured, user, loading, homePath, refresh } = useAuth();
   const navigate = useNavigate();
+  const router = useRouter();
 
   const errors: Record<string, string | undefined> = {};
   if (mode === "signup" && !fullName.trim()) errors.fullName = "Tell us your name.";
@@ -157,11 +176,21 @@ function AuthPage() {
   const markTouched = (field: string) => setTouched((t) => ({ ...t, [field]: true }));
   const hasErrors = Object.values(errors).some(Boolean);
 
+  async function navigateAfterAuth(fallback: RoleHomePath) {
+    const dest = resolveDestination(redirectTo, fallback);
+    if (dest.kind === "home") {
+      await navigate({ to: dest.path, replace: true });
+    } else {
+      router.history.replace(dest.href);
+    }
+  }
+
   useEffect(() => {
     if (!loading && user && mode !== "forgot") {
-      void navigate({ to: (redirectTo ?? homePath) as "/dashboard", replace: true });
+      void navigateAfterAuth(homePath);
     }
-  }, [loading, user, homePath, redirectTo, mode, navigate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: only when session settles
+  }, [loading, user, homePath, redirectTo, mode]);
 
   if (!configured) {
     return (
@@ -180,10 +209,7 @@ function AuthPage() {
 
   async function goHome() {
     await refresh();
-    await navigate({
-      to: (redirectTo ?? ROLE_HOME[role]) as "/dashboard",
-      replace: true,
-    });
+    await navigateAfterAuth(ROLE_HOME[role]);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -264,7 +290,7 @@ function AuthPage() {
       if (error) throw error;
       await refresh();
       toast.success("Welcome back");
-      // The effect above navigates to redirectTo (or the role home) once the session lands.
+      // The effect above navigates once the session lands.
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Something went wrong");
     } finally {
@@ -336,7 +362,7 @@ function AuthPage() {
                 [
                   { key: "email" as const, label: "Email", icon: Mail },
                   { key: "phone" as const, label: "Phone", icon: Smartphone },
-                ]
+                ] as const
               ).map((m) => {
                 const Icon = m.icon;
                 return (
@@ -500,11 +526,7 @@ function AuthPage() {
                     aria-pressed={showPassword}
                     className="tap-scale absolute inset-y-0 right-0 flex w-11 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
                   >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
                 <FieldError message={show("password")} />
@@ -536,7 +558,6 @@ function AuthPage() {
               </div>
             ) : null}
 
-
             <Button type="submit" className="h-12 w-full rounded-xl" disabled={submitting}>
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               {mode === "signin"
@@ -555,7 +576,9 @@ function AuthPage() {
             <button
               type="button"
               className="font-medium text-primary hover:underline"
-              onClick={() => setMode(mode === "signup" ? "signin" : mode === "signin" ? "signup" : "signin")}
+              onClick={() =>
+                setMode(mode === "signup" ? "signin" : mode === "signin" ? "signup" : "signin")
+              }
             >
               {mode === "signin" ? "Create one" : mode === "signup" ? "Sign in" : "Back to sign in"}
             </button>
