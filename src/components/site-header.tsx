@@ -82,50 +82,34 @@ export function SiteHeader() {
                 key={l.to}
                 to={l.to}
                 onClick={() => setOpen(false)}
-                className="rounded-md px-3 py-2 text-sm font-medium text-foreground"
+                className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground"
               >
                 {l.label}
               </Link>
             ))}
-            {user ? null : user ? (
-              <>
-                <Link
-                  to={homePath}
-                  onClick={() => setOpen(false)}
-                  className="rounded-md px-3 py-2 text-sm font-medium text-foreground"
-                >
-                  Dashboard
-                </Link>
-                <button
-                  type="button"
-                  className="rounded-md px-3 py-2 text-left text-sm font-medium text-foreground"
-                  onClick={() => {
-                    setOpen(false);
-                    void signOut();
-                  }}
-                >
-                  Sign out
-                </button>
-              </>
-            ) : (
-              <>
-                <Link
-                  to="/auth"
-                  onClick={() => setOpen(false)}
-                  className="rounded-md px-3 py-2 text-sm font-medium text-foreground"
-                >
-                  Sign in
-                </Link>
-                <Link
-                  to="/auth"
-                  search={{ mode: "signup" }}
-                  onClick={() => setOpen(false)}
-                  className="rounded-md px-3 py-2 text-sm font-medium text-primary"
-                >
-                  Get started
-                </Link>
-              </>
-            )}
+            <div className="mt-2 flex flex-col gap-2">
+              {user ? (
+                <>
+                  <Button asChild variant="outline" onClick={() => setOpen(false)}>
+                    <Link to={homePath}>Dashboard</Link>
+                  </Button>
+                  <Button variant="ghost" onClick={() => void signOut()}>
+                    Sign out
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button asChild variant="outline" onClick={() => setOpen(false)}>
+                    <Link to="/auth">Sign in</Link>
+                  </Button>
+                  <Button asChild onClick={() => setOpen(false)}>
+                    <Link to="/auth" search={{ mode: "signup" }}>
+                      Get started
+                    </Link>
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
         </div>
       ) : null}
