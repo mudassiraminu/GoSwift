@@ -26,7 +26,7 @@ export function RoleGuard({ role, children }: { role: AppRole; children: ReactNo
 
   useEffect(() => {
     if (canRedirect) {
-      void navigate({ to: homePath as "/dashboard", replace: true });
+      void navigate({ to: homePath, replace: true });
     }
   }, [canRedirect, homePath, navigate]);
 

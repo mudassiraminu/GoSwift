@@ -7,6 +7,9 @@ import { useRouter } from "@tanstack/react-router";
 import { supabase, isSupabaseConfigured } from "./client";
 import type { AppRole, Profile } from "./types";
 
+/** Paths returned by role-based home routing. Keep in sync with file routes. */
+export type RoleHomePath = "/admin" | "/provider" | "/rider" | "/dashboard";
+
 export interface AuthState {
   session: Session | null;
   user: User | null;
@@ -16,7 +19,7 @@ export interface AuthState {
   configured: boolean;
   hasRole: (role: AppRole) => boolean;
   primaryRole: AppRole | null;
-  homePath: string;
+  homePath: RoleHomePath;
   refresh: () => Promise<void>;
   signOut: () => Promise<void>;
 }
@@ -25,12 +28,21 @@ const AuthContext = createContext<AuthState | null>(null);
 
 const ROLE_PRIORITY: AppRole[] = ["admin", "provider", "rider", "customer"];
 
-export const ROLE_HOME: Record<AppRole, string> = {
+export const ROLE_HOME: Record<AppRole, RoleHomePath> = {
   admin: "/admin",
   provider: "/provider",
   rider: "/rider",
   customer: "/dashboard",
 };
+
+/** Only allow same-origin relative paths (no open redirects). */
+export function safeRedirectPath(raw: string | undefined | null): string | undefined {
+  if (!raw) return undefined;
+  if (!raw.startsWith("/") || raw.startsWith("//")) return undefined;
+  // Block protocol-relative and absolute URLs disguised as paths
+  if (raw.includes("://")) return undefined;
+  return raw;
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
@@ -102,7 +114,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession(null);
     setProfile(null);
     setRoles([]);
-    await router.navigate({ to: "/auth", replace: true });
+    await router.navigate({ to: "/auth", search: { mode: "signin" }, replace: true });
   }, [queryClient, router]);
 
   const value = useMemo<AuthState>(() => {
