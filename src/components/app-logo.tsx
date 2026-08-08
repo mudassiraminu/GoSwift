@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 
-/** Served from /public so favicons and in-app mark stay in sync. */
-const LOGO_SRC = "/goswift-logo.png";
+/** Brand mark: orange delivery van (matches app peach palette). */
+const LOGO_SRC = "/goswift-logo.svg";
 
 interface AppLogoProps {
   className?: string;

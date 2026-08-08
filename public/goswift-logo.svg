@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFE8C8"/>
+      <stop offset="100%" stop-color="#F5D4A8"/>
+    </linearGradient>
+    <linearGradient id="van" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FF7A3D"/>
+      <stop offset="100%" stop-color="#E85A20"/>
+    </linearGradient>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#C45A20" flood-opacity="0.22"/>
+    </filter>
+  </defs>
+  <rect x="24" y="24" width="464" height="464" rx="96" fill="url(#bg)"/>
+  <g filter="url(#soft)">
+    <path d="M92 292c0-18 14-32 32-32h48l36-72c8-16 24-26 42-26h92c28 0 52 20 58 48l12 52h18c18 0 32 14 32 32v48c0 10-8 18-18 18h-14c-4 28-28 48-56 48s-52-20-56-48H178c-4 28-28 48-56 48s-52-20-56-48H98c-10 0-18-8-18-18v-50z" fill="url(#van)"/>
+    <path d="M178 192h88c12 0 22 8 26 20l8 28H170l8-28c4-12 14-20 26-20z" fill="#2A2A2E"/>
+    <path d="M280 212h78c8 0 14 6 16 14l6 24H274l6-24c2-8 8-14 16-14z" fill="#2A2A2E"/>
+    <path d="M348 248h36M348 268h28M348 288h20" stroke="#FFF6EE" stroke-width="14" stroke-linecap="round" opacity="0.9"/>
+    <rect x="100" y="300" width="36" height="16" rx="6" fill="#2A2A2E"/>
+    <circle cx="122" cy="286" r="10" fill="#FFF6EE"/>
+    <circle cx="148" cy="286" r="10" fill="#FFF6EE"/>
+    <circle cx="176" cy="358" r="34" fill="#2A2A2E"/>
+    <circle cx="176" cy="358" r="14" fill="#6B6B70"/>
+    <circle cx="320" cy="358" r="34" fill="#2A2A2E"/>
+    <circle cx="320" cy="358" r="14" fill="#6B6B70"/>
+    <g transform="translate(300 300)">
+      <rect x="0" y="0" width="96" height="88" rx="10" fill="#D4A574"/>
+      <rect x="0" y="36" width="96" height="18" fill="#C08A52"/>
+      <path d="M48 18v56" stroke="#B07A48" stroke-width="8" stroke-linecap="round"/>
+      <path d="M34 48h28" stroke="#B07A48" stroke-width="8" stroke-linecap="round"/>
+      <path d="M48 28l-10 12h6v14h8V40h6l-10-12z" fill="#8B5A2B"/>
+    </g>
+  </g>
+</svg>
