@@ -1,5 +1,7 @@
-import logoAsset from "@/assets/goswift-icon.png.asset.json";
 import { cn } from "@/lib/utils";
+
+/** Served from /public so favicons and in-app mark stay in sync. */
+const LOGO_SRC = "/goswift-logo.png";
 
 interface AppLogoProps {
   className?: string;
@@ -7,11 +9,11 @@ interface AppLogoProps {
   labelled?: boolean;
 }
 
-/** The GOSwift brand mark. Single source of truth for the app icon artwork. */
+/** The GOSwift brand mark — orange delivery van with parcel. */
 export function AppLogo({ className, labelled = true }: AppLogoProps) {
   return (
     <img
-      src={logoAsset.url}
+      src={LOGO_SRC}
       alt={labelled ? "GOSwift" : ""}
       aria-hidden={labelled ? undefined : true}
       className={cn("select-none object-contain", className)}
