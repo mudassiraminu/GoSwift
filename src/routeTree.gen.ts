@@ -19,6 +19,8 @@ import { Route as AuthenticatedProviderRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as AuthenticatedNewDeliveryRouteImport } from './routes/_authenticated/new-delivery'
+import { Route as AuthenticatedRequestIdRouteImport } from './routes/_authenticated/request.$id'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -69,6 +71,16 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedNewDeliveryRoute = AuthenticatedNewDeliveryRouteImport.update({
+  id: '/new-delivery',
+  path: '/new-delivery',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedRequestIdRoute = AuthenticatedRequestIdRouteImport.update({
+  id: '/request/$id',
+  path: '/request/$id',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -80,6 +92,8 @@ export interface FileRoutesByFullPath {
   '/profile': typeof AuthenticatedProfileRoute
   '/provider': typeof AuthenticatedProviderRoute
   '/rider': typeof AuthenticatedRiderRoute
+  '/new-delivery': typeof AuthenticatedNewDeliveryRoute
+  '/request/$id': typeof AuthenticatedRequestIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -91,6 +105,8 @@ export interface FileRoutesByTo {
   '/profile': typeof AuthenticatedProfileRoute
   '/provider': typeof AuthenticatedProviderRoute
   '/rider': typeof AuthenticatedRiderRoute
+  '/new-delivery': typeof AuthenticatedNewDeliveryRoute
+  '/request/$id': typeof AuthenticatedRequestIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -104,6 +120,8 @@ export interface FileRoutesById {
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/provider': typeof AuthenticatedProviderRoute
   '/_authenticated/rider': typeof AuthenticatedRiderRoute
+  '/_authenticated/new-delivery': typeof AuthenticatedNewDeliveryRoute
+  '/_authenticated/request/$id': typeof AuthenticatedRequestIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -117,6 +135,8 @@ export interface FileRouteTypes {
     | '/profile'
     | '/provider'
     | '/rider'
+    | '/new-delivery'
+    | '/request/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -128,6 +148,8 @@ export interface FileRouteTypes {
     | '/profile'
     | '/provider'
     | '/rider'
+    | '/new-delivery'
+    | '/request/$id'
   id:
     | '__root__'
     | '/'
@@ -140,6 +162,8 @@ export interface FileRouteTypes {
     | '/_authenticated/profile'
     | '/_authenticated/provider'
     | '/_authenticated/rider'
+    | '/_authenticated/new-delivery'
+    | '/_authenticated/request/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -222,6 +246,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/new-delivery': {
+      id: '/_authenticated/new-delivery'
+      path: '/new-delivery'
+      fullPath: '/new-delivery'
+      preLoaderRoute: typeof AuthenticatedNewDeliveryRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/request/$id': {
+      id: '/_authenticated/request/$id'
+      path: '/request/$id'
+      fullPath: '/request/$id'
+      preLoaderRoute: typeof AuthenticatedRequestIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -231,6 +269,8 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedProviderRoute: typeof AuthenticatedProviderRoute
   AuthenticatedRiderRoute: typeof AuthenticatedRiderRoute
+  AuthenticatedNewDeliveryRoute: typeof AuthenticatedNewDeliveryRoute
+  AuthenticatedRequestIdRoute: typeof AuthenticatedRequestIdRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -239,6 +279,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedProviderRoute: AuthenticatedProviderRoute,
   AuthenticatedRiderRoute: AuthenticatedRiderRoute,
+  AuthenticatedNewDeliveryRoute: AuthenticatedNewDeliveryRoute,
+  AuthenticatedRequestIdRoute: AuthenticatedRequestIdRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
