@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
 import {
   AlertCircle,
+  Building2,
   Check,
   Eye,
   EyeOff,
@@ -8,6 +9,7 @@ import {
   Mail,
   ShieldCheck,
   Smartphone,
+  Store,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -17,6 +19,7 @@ import { SupabaseSetupNotice } from "@/components/supabase-setup-notice";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ensureProviderProfile } from "@/lib/marketplace/api";
 import { supabase } from "@/lib/supabase/client";
 import {
   ROLE_HOME,
@@ -24,11 +27,11 @@ import {
   useAuth,
   type RoleHomePath,
 } from "@/lib/supabase/auth";
-import type { AppRole } from "@/lib/supabase/types";
 import { cn } from "@/lib/utils";
 
 type Mode = "signin" | "signup" | "forgot" | "verify";
 type Method = "email" | "phone";
+type SignupKind = "customer" | "provider";
 
 const KNOWN_HOME_PATHS = new Set<string>(Object.values(ROLE_HOME));
 
@@ -39,11 +42,9 @@ function resolveDestination(
   if (!redirectTo) return { kind: "home", path: fallback };
   const pathOnly = redirectTo.split("?")[0]?.split("#")[0] ?? "";
   if (KNOWN_HOME_PATHS.has(pathOnly) || pathOnly === "/profile") {
-    // Typed routes we can navigate to safely
     if (pathOnly === "/profile") return { kind: "href", href: redirectTo };
     return { kind: "home", path: pathOnly as RoleHomePath };
   }
-  // Other same-origin paths (future routes) via history
   return { kind: "href", href: redirectTo };
 }
 
@@ -60,31 +61,38 @@ export const Route = createFileRoute("/auth")({
       {
         name: "description",
         content:
-          "Sign in or create a GOSwift account with your email or phone number as a customer, delivery provider or rider.",
-      },
-      { property: "og:title", content: "Sign in — GOSwift" },
-      {
-        property: "og:description",
-        content: "Access your GOSwift deliveries, quotes and rider assignments.",
+          "Sign in or create a GOSwift account as a business or delivery company.",
       },
     ],
   }),
   component: AuthPage,
 });
 
-const SIGNUP_ROLES: { value: Exclude<AppRole, "admin">; label: string; hint: string }[] = [
-  { value: "customer", label: "I need deliveries", hint: "Post jobs and compare quotes" },
-  { value: "provider", label: "I run a delivery company", hint: "Quote on jobs, manage riders" },
-  { value: "rider", label: "I am a rider", hint: "Join a company and deliver" },
+const SIGNUP_KINDS: {
+  value: SignupKind;
+  label: string;
+  hint: string;
+  icon: typeof Store;
+}[] = [
+  {
+    value: "customer",
+    label: "I need deliveries",
+    hint: "Post jobs, compare quotes, pay securely",
+    icon: Store,
+  },
+  {
+    value: "provider",
+    label: "I run a delivery company",
+    hint: "Get leads, quote jobs, manage riders",
+    icon: Building2,
+  },
 ];
 
-/** Keeps digits and a single leading +, so Supabase always gets E.164-ish input. */
 function normalizePhone(raw: string) {
   const digits = raw.replace(/[^\d+]/g, "");
   return digits.startsWith("+") ? "+" + digits.slice(1).replace(/\+/g, "") : "+" + digits;
 }
 
-/** Digits only, ignoring the leading +. */
 function phoneDigits(raw: string) {
   return raw.replace(/\D/g, "");
 }
@@ -144,6 +152,18 @@ function FieldError({ message }: { message?: string }) {
   );
 }
 
+async function provisionProvider(userId: string, fullName: string, phone?: string) {
+  await supabase.from("user_roles").upsert(
+    { user_id: userId, role: "provider" },
+    { onConflict: "user_id,role" },
+  );
+  await ensureProviderProfile(
+    userId,
+    fullName.trim() ? `${fullName.trim()}'s Company` : "My Delivery Company",
+    phone,
+  );
+}
+
 function AuthPage() {
   const { mode: initialMode, redirect: rawRedirect } = Route.useSearch();
   const redirectTo = safeRedirectPath(rawRedirect);
@@ -154,7 +174,8 @@ function AuthPage() {
   const [otp, setOtp] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
-  const [role, setRole] = useState<Exclude<AppRole, "admin">>("customer");
+  const [kind, setKind] = useState<SignupKind>("customer");
+  const [companyName, setCompanyName] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
@@ -164,6 +185,8 @@ function AuthPage() {
 
   const errors: Record<string, string | undefined> = {};
   if (mode === "signup" && !fullName.trim()) errors.fullName = "Tell us your name.";
+  if (mode === "signup" && kind === "provider" && !companyName.trim())
+    errors.companyName = "Enter your company name.";
   if (mode === "forgot" || (mode !== "verify" && method === "email"))
     errors.email = validateEmail(email);
   if (mode !== "verify" && mode !== "forgot" && method === "phone")
@@ -189,7 +212,7 @@ function AuthPage() {
     if (!loading && user && mode !== "forgot") {
       void navigateAfterAuth(homePath);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: only when session settles
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, user, homePath, redirectTo, mode]);
 
   if (!configured) {
@@ -200,36 +223,56 @@ function AuthPage() {
     );
   }
 
-  /** Absolute URL Supabase should send the user back to, keeping ?redirect intact. */
   function callbackUrl(path = "/") {
     const url = new URL(path, window.location.origin);
     if (redirectTo) url.searchParams.set("redirect", redirectTo);
     return url.toString();
   }
 
-  async function goHome() {
+  async function finishSignup(userId: string) {
+    if (kind === "provider") {
+      await supabase.from("user_roles").upsert(
+        { user_id: userId, role: "provider" },
+        { onConflict: "user_id,role" },
+      );
+      await ensureProviderProfile(
+        userId,
+        companyName.trim() || `${fullName.trim()}'s Company`,
+        method === "phone" ? normalizePhone(phone) : undefined,
+      );
+    }
     await refresh();
-    await navigateAfterAuth(ROLE_HOME[role]);
+    await navigateAfterAuth(kind === "provider" ? "/provider" : "/dashboard");
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (hasErrors) {
-      setTouched({ fullName: true, email: true, phone: true, password: true, otp: true });
+      setTouched({
+        fullName: true,
+        companyName: true,
+        email: true,
+        phone: true,
+        password: true,
+        otp: true,
+      });
       toast.error(Object.values(errors).find(Boolean) ?? "Please check the form.");
       return;
     }
     setSubmitting(true);
     try {
       if (mode === "verify") {
-        const { error } = await supabase.auth.verifyOtp({
+        const { data, error } = await supabase.auth.verifyOtp({
           phone: normalizePhone(phone),
           token: otp.trim(),
           type: "sms",
         });
         if (error) throw error;
-        toast.success("Phone verified");
-        await goHome();
+        if (data.user) await finishSignup(data.user.id);
+        else {
+          toast.success("Phone verified");
+          await refresh();
+        }
         return;
       }
 
@@ -244,11 +287,19 @@ function AuthPage() {
       }
 
       if (mode === "signup") {
+        const meta = {
+          full_name: fullName,
+          role: kind,
+          company_name: kind === "provider" ? companyName.trim() : undefined,
+        };
+
         if (method === "phone") {
           const { data, error } = await supabase.auth.signUp({
             phone: normalizePhone(phone),
             password,
-            options: { data: { full_name: fullName, role, phone: normalizePhone(phone) } },
+            options: {
+              data: { ...meta, phone: normalizePhone(phone) },
+            },
           });
           if (error) throw error;
           if (!data.session) {
@@ -256,8 +307,10 @@ function AuthPage() {
             setMode("verify");
             return;
           }
-          toast.success("Account created");
-          await goHome();
+          if (data.user) {
+            toast.success("Account created");
+            await finishSignup(data.user.id);
+          }
           return;
         }
 
@@ -266,7 +319,7 @@ function AuthPage() {
           password,
           options: {
             emailRedirectTo: callbackUrl("/"),
-            data: { full_name: fullName, role },
+            data: meta,
           },
         });
         if (error) throw error;
@@ -275,8 +328,10 @@ function AuthPage() {
           setMode("signin");
           return;
         }
-        toast.success("Account created");
-        await goHome();
+        if (data.user) {
+          toast.success("Account created");
+          await finishSignup(data.user.id);
+        }
         return;
       }
 
@@ -290,7 +345,6 @@ function AuthPage() {
       if (error) throw error;
       await refresh();
       toast.success("Welcome back");
-      // The effect above navigates once the session lands.
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Something went wrong");
     } finally {
@@ -302,16 +356,16 @@ function AuthPage() {
     mode === "signin"
       ? "Sign in"
       : mode === "signup"
-        ? "Create your account"
+        ? "Join GOSwift"
         : mode === "verify"
           ? "Verify your phone"
           : "Reset your password";
 
   const sub =
     mode === "signin"
-      ? "Welcome back. Enter your details to continue."
+      ? "Welcome back to your delivery marketplace."
       : mode === "signup"
-        ? "Tell us how you plan to use GOSwift."
+        ? "Businesses find providers. Providers get leads. Riders stay under their company."
         : mode === "verify"
           ? `Enter the 6-digit code we sent to ${normalizePhone(phone)}.`
           : "We'll email you a secure link to set a new password.";
@@ -333,16 +387,16 @@ function AuthPage() {
         </Link>
         <div className="relative">
           <h2 className="max-w-sm font-display text-3xl font-bold leading-tight">
-            One account for customers, delivery companies and riders.
+            Find. Compare. Accept. Pay. Deliver.
           </h2>
-          <p className="mt-4 max-w-md text-primary-foreground/70">
-            Your role decides what you see: post deliveries, quote on jobs, or run your assigned
-            routes.
+          <p className="mt-4 max-w-md text-primary-foreground/75">
+            Sign up as a business that needs delivery, or as a delivery company that wants qualified
+            leads. Riders are added by their company — not as public accounts.
           </p>
         </div>
         <p className="relative inline-flex items-center gap-2 text-xs text-primary-foreground/60">
           <ShieldCheck className="h-4 w-4" />
-          Protected payments &middot; Verified providers &middot; Dispute resolution
+          Protected payments · Verified providers · Clear accountability
         </p>
       </div>
 
@@ -389,38 +443,73 @@ function AuthPage() {
             {mode === "signup" ? (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="fullName">Full name</Label>
+                  <Label htmlFor="fullName">Your name</Label>
                   <Input
                     id="fullName"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     onBlur={() => markTouched("fullName")}
                     aria-invalid={!!show("fullName")}
-                    placeholder="Alex Morgan"
+                    placeholder="Ada Okonkwo"
                   />
                   <FieldError message={show("fullName")} />
                 </div>
                 <div className="space-y-2">
                   <Label>I am signing up as</Label>
                   <div className="grid gap-2">
-                    {SIGNUP_ROLES.map((r) => (
-                      <button
-                        type="button"
-                        key={r.value}
-                        onClick={() => setRole(r.value)}
-                        className={cn(
-                          "tap-scale rounded-xl border p-3 text-left transition-colors",
-                          role === r.value
-                            ? "border-primary bg-primary/10"
-                            : "border-border hover:bg-secondary",
-                        )}
-                      >
-                        <span className="block text-sm font-medium text-foreground">{r.label}</span>
-                        <span className="block text-xs text-muted-foreground">{r.hint}</span>
-                      </button>
-                    ))}
+                    {SIGNUP_KINDS.map((r) => {
+                      const Icon = r.icon;
+                      return (
+                        <button
+                          type="button"
+                          key={r.value}
+                          onClick={() => setKind(r.value)}
+                          className={cn(
+                            "tap-scale flex gap-3 rounded-2xl border p-3.5 text-left transition-colors",
+                            kind === r.value
+                              ? "border-primary bg-primary/10 shadow-sm shadow-primary/10"
+                              : "border-border hover:bg-secondary",
+                          )}
+                        >
+                          <span
+                            className={cn(
+                              "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
+                              kind === r.value
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-secondary text-primary",
+                            )}
+                          >
+                            <Icon className="h-5 w-5" />
+                          </span>
+                          <span>
+                            <span className="block text-sm font-semibold text-foreground">
+                              {r.label}
+                            </span>
+                            <span className="block text-xs text-muted-foreground">{r.hint}</span>
+                          </span>
+                        </button>
+                      );
+                    })}
                   </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Riders are invited by their delivery company — they don&apos;t create public
+                    GOSwift accounts.
+                  </p>
                 </div>
+                {kind === "provider" ? (
+                  <div className="space-y-2">
+                    <Label htmlFor="companyName">Company name</Label>
+                    <Input
+                      id="companyName"
+                      value={companyName}
+                      onChange={(e) => setCompanyName(e.target.value)}
+                      onBlur={() => markTouched("companyName")}
+                      aria-invalid={!!show("companyName")}
+                      placeholder="Swift Logistics Ltd"
+                    />
+                    <FieldError message={show("companyName")} />
+                  </div>
+                ) : null}
               </>
             ) : null}
 
@@ -440,11 +529,6 @@ function AuthPage() {
                   className="text-center text-lg tracking-[0.4em]"
                 />
                 <FieldError message={show("otp")} />
-                {!show("otp") ? (
-                  <p className="text-xs text-muted-foreground">
-                    The SMS can take up to a minute to arrive.
-                  </p>
-                ) : null}
               </div>
             ) : null}
 
@@ -486,8 +570,7 @@ function AuthPage() {
                 <FieldError message={show("phone")} />
                 {!show("phone") ? (
                   <p className="text-xs text-muted-foreground">
-                    Include your country code, e.g. +234 for Nigeria. We&apos;ll text a 6-digit code
-                    to confirm it&apos;s you.
+                    Include country code, e.g. +234 for Nigeria.
                   </p>
                 ) : null}
               </div>
@@ -545,25 +628,21 @@ function AuthPage() {
                       {passwordScore(password) >= 3 ? (
                         <Check className="h-3.5 w-3.5 text-success" />
                       ) : null}
-                      Strength: {STRENGTH[passwordScore(password)].label} &middot; 8+ characters with
-                      letters and numbers
+                      Strength: {STRENGTH[passwordScore(password)].label}
                     </p>
                   </div>
-                ) : null}
-                {mode === "signin" && !password && !show("password") ? (
-                  <p className="text-xs text-muted-foreground">
-                    Use the password you set when you created your GOSwift account.
-                  </p>
                 ) : null}
               </div>
             ) : null}
 
-            <Button type="submit" className="h-12 w-full rounded-xl" disabled={submitting}>
+            <Button type="submit" className="h-12 w-full" disabled={submitting}>
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               {mode === "signin"
                 ? "Sign in"
                 : mode === "signup"
-                  ? "Create account"
+                  ? kind === "provider"
+                    ? "Create company account"
+                    : "Create business account"
                   : mode === "verify"
                     ? "Verify & continue"
                     : "Send reset link"}
