@@ -16,7 +16,12 @@ export function AppLogo({ className, labelled = true }: AppLogoProps) {
       src={LOGO_SRC}
       alt={labelled ? "GOSwift" : ""}
       aria-hidden={labelled ? undefined : true}
-      className={cn("select-none object-contain", className)}
+      width={256}
+      height={256}
+      className={cn(
+        "block aspect-square h-auto w-auto max-h-full max-w-full shrink-0 select-none object-contain object-center",
+        className,
+      )}
       draggable={false}
     />
   );
