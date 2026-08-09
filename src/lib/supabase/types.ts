@@ -10,6 +10,30 @@ export type AccountType = "individual" | "business";
 export type RiderStatus = "active" | "inactive" | "suspended";
 export type DocStatus = "pending" | "approved" | "rejected";
 
+export type RequestStatus =
+  | "draft"
+  | "open"
+  | "quoted"
+  | "assigned"
+  | "in_transit"
+  | "delivered"
+  | "completed"
+  | "cancelled";
+
+export type QuoteStatus = "pending" | "accepted" | "rejected" | "expired" | "withdrawn";
+
+export type DeliveryStatus =
+  | "assigned"
+  | "picked_up"
+  | "in_transit"
+  | "delivered"
+  | "confirmed"
+  | "failed"
+  | "cancelled";
+
+export type PaymentStatus = "pending" | "processing" | "paid" | "failed" | "refunded";
+export type PayoutStatus = "pending" | "processing" | "paid" | "failed" | "on_hold";
+
 export type Profile = {
   id: string;
   full_name: string | null;
@@ -18,14 +42,14 @@ export type Profile = {
   account_type: AccountType;
   created_at: string;
   updated_at: string;
-}
+};
 
 export type UserRoleRow = {
   id: string;
   user_id: string;
   role: AppRole;
   created_at: string;
-}
+};
 
 export type Business = {
   id: string;
@@ -38,7 +62,7 @@ export type Business = {
   city: string | null;
   created_at: string;
   updated_at: string;
-}
+};
 
 export type DeliveryProvider = {
   id: string;
@@ -60,7 +84,7 @@ export type DeliveryProvider = {
   verified_at: string | null;
   created_at: string;
   updated_at: string;
-}
+};
 
 export type ProviderVerificationDocument = {
   id: string;
@@ -71,7 +95,7 @@ export type ProviderVerificationDocument = {
   reviewer_note: string | null;
   created_at: string;
   updated_at: string;
-}
+};
 
 export type ProviderServiceArea = {
   id: string;
@@ -80,7 +104,7 @@ export type ProviderServiceArea = {
   city: string;
   area: string | null;
   created_at: string;
-}
+};
 
 export type ProviderServiceType = {
   id: string;
@@ -88,7 +112,7 @@ export type ProviderServiceType = {
   service_type: string;
   base_price: number | null;
   created_at: string;
-}
+};
 
 export type Rider = {
   id: string;
@@ -104,7 +128,131 @@ export type Rider = {
   status: RiderStatus;
   created_at: string;
   updated_at: string;
-}
+};
+
+export type DeliveryRequest = {
+  id: string;
+  customer_id: string;
+  business_id: string | null;
+  pickup_address: string;
+  pickup_city: string | null;
+  pickup_contact: string | null;
+  pickup_phone: string | null;
+  dropoff_address: string;
+  dropoff_city: string | null;
+  dropoff_contact: string | null;
+  dropoff_phone: string | null;
+  package_description: string | null;
+  package_weight_kg: number | null;
+  service_type: string | null;
+  scheduled_for: string | null;
+  notes: string | null;
+  status: RequestStatus;
+  created_at: string;
+  updated_at: string;
+};
+
+export type DeliveryQuote = {
+  id: string;
+  request_id: string;
+  provider_id: string;
+  amount: number;
+  currency: string;
+  eta_minutes: number | null;
+  message: string | null;
+  status: QuoteStatus;
+  expires_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type Delivery = {
+  id: string;
+  request_id: string;
+  quote_id: string | null;
+  provider_id: string;
+  rider_id: string | null;
+  customer_id: string;
+  status: DeliveryStatus;
+  tracking_code: string | null;
+  proof_path: string | null;
+  picked_up_at: string | null;
+  delivered_at: string | null;
+  confirmed_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type DeliveryStatusHistory = {
+  id: string;
+  delivery_id: string;
+  status: DeliveryStatus;
+  changed_by: string | null;
+  note: string | null;
+  created_at: string;
+};
+
+export type Payment = {
+  id: string;
+  delivery_id: string | null;
+  request_id: string | null;
+  customer_id: string;
+  amount: number;
+  currency: string;
+  provider_amount: number | null;
+  commission_amount: number | null;
+  status: PaymentStatus;
+  gateway: string | null;
+  gateway_reference: string | null;
+  paid_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type Payout = {
+  id: string;
+  provider_id: string;
+  payment_id: string | null;
+  amount: number;
+  currency: string;
+  status: PayoutStatus;
+  reference: string | null;
+  released_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CommissionRule = {
+  id: string;
+  name: string;
+  percentage: number;
+  flat_fee: number;
+  service_type: string | null;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type Rating = {
+  id: string;
+  delivery_id: string;
+  rater_id: string;
+  provider_id: string | null;
+  score: number;
+  created_at: string;
+};
+
+export type Review = {
+  id: string;
+  rating_id: string | null;
+  provider_id: string | null;
+  author_id: string;
+  title: string | null;
+  body: string | null;
+  is_published: boolean;
+  created_at: string;
+  updated_at: string;
+};
 
 export type AppNotification = {
   id: string;
@@ -115,7 +263,7 @@ export type AppNotification = {
   link: string | null;
   read_at: string | null;
   created_at: string;
-}
+};
 
 type Table<Row> = {
   Row: Row;
@@ -123,9 +271,6 @@ type Table<Row> = {
   Update: Partial<Row>;
   Relationships: [];
 };
-
-/** Loose row type for the future-workflow tables (structure lives in schema.sql). */
-type PlaceholderRow = Record<string, unknown> & { id: string };
 
 export type Database = {
   __InternalSupabase: { PostgrestVersion: "12" };
@@ -140,18 +285,18 @@ export type Database = {
       provider_service_types: Table<ProviderServiceType>;
       riders: Table<Rider>;
       notifications: Table<AppNotification>;
-      delivery_requests: Table<PlaceholderRow>;
-      delivery_quotes: Table<PlaceholderRow>;
-      deliveries: Table<PlaceholderRow>;
-      delivery_status_history: Table<PlaceholderRow>;
-      payments: Table<PlaceholderRow>;
-      payouts: Table<PlaceholderRow>;
-      commission_rules: Table<PlaceholderRow>;
-      disputes: Table<PlaceholderRow>;
-      dispute_evidence: Table<PlaceholderRow>;
-      ratings: Table<PlaceholderRow>;
-      reviews: Table<PlaceholderRow>;
-      audit_logs: Table<PlaceholderRow>;
+      delivery_requests: Table<DeliveryRequest>;
+      delivery_quotes: Table<DeliveryQuote>;
+      deliveries: Table<Delivery>;
+      delivery_status_history: Table<DeliveryStatusHistory>;
+      payments: Table<Payment>;
+      payouts: Table<Payout>;
+      commission_rules: Table<CommissionRule>;
+      disputes: Table<Record<string, unknown> & { id: string }>;
+      dispute_evidence: Table<Record<string, unknown> & { id: string }>;
+      ratings: Table<Rating>;
+      reviews: Table<Review>;
+      audit_logs: Table<Record<string, unknown> & { id: string }>;
     };
     Views: { [_ in never]: never };
     Functions: {
@@ -165,7 +310,12 @@ export type Database = {
       account_type: AccountType;
       rider_status: RiderStatus;
       doc_status: DocStatus;
+      request_status: RequestStatus;
+      quote_status: QuoteStatus;
+      delivery_status: DeliveryStatus;
+      payment_status: PaymentStatus;
+      payout_status: PayoutStatus;
     };
     CompositeTypes: { [_ in never]: never };
   };
-}
+};
