@@ -49,7 +49,10 @@ export function SiteHeader() {
           {loading ? null : user ? (
             <>
               <Button asChild variant="ghost" size="sm">
-                <Link to={homePath as "/dashboard"}>Dashboard</Link>
+                <Link to={homePath}>Dashboard</Link>
+              </Button>
+              <Button asChild variant="ghost" size="sm">
+                <Link to="/profile">Profile</Link>
               </Button>
               <Button size="sm" variant="outline" onClick={() => void signOut()}>
                 Sign out
@@ -96,7 +99,10 @@ export function SiteHeader() {
               {user ? (
                 <>
                   <Button asChild variant="outline" onClick={() => setOpen(false)}>
-                    <Link to={homePath as "/dashboard"}>Dashboard</Link>
+                    <Link to={homePath}>Dashboard</Link>
+                  </Button>
+                  <Button asChild variant="outline" onClick={() => setOpen(false)}>
+                    <Link to="/profile">Profile</Link>
                   </Button>
                   <Button variant="ghost" onClick={() => void signOut()}>
                     Sign out
