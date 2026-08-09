@@ -83,24 +83,32 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content:
           "width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover",
       },
-      { name: "theme-color", content: "#fdf6ee" },
+      { name: "theme-color", content: "#1e2a4a" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "default" },
       { name: "mobile-web-app-capable", content: "yes" },
-      { title: "GOSwift — Fast Parcel Delivery App" },
+      { title: "GOSwift — Trusted delivery marketplace" },
       {
         name: "description",
         content:
-          "GOSwift delivers your parcels quickly with verified couriers, live tracking and secure payment. Available on iOS and Android.",
+          "GOSwift connects small businesses with verified delivery companies. Find. Compare. Accept. Pay. Deliver.",
       },
       { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-      { property: "og:title", content: "GOSwift — Fast Parcel Delivery App" },
-      { name: "twitter:title", content: "GOSwift — Fast Parcel Delivery App" },
-      { property: "og:description", content: "GOSwift delivers your parcels quickly with verified couriers, live tracking and secure payment. Available on iOS and Android." },
-      { name: "twitter:description", content: "GOSwift delivers your parcels quickly with verified couriers, live tracking and secure payment. Available on iOS and Android." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/376a3956-4cfc-4107-8ad3-99deb8897fdf/id-preview-f1cd8c03--29b44d93-8975-4cc1-abb9-465ed142b82e.lovable.app-1785510347766.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/376a3956-4cfc-4107-8ad3-99deb8897fdf/id-preview-f1cd8c03--29b44d93-8975-4cc1-abb9-465ed142b82e.lovable.app-1785510347766.png" },
+      { name: "twitter:card", content: "summary" },
+      { property: "og:title", content: "GOSwift — Trusted delivery marketplace" },
+      { name: "twitter:title", content: "GOSwift — Trusted delivery marketplace" },
+      {
+        property: "og:description",
+        content:
+          "Connect with verified delivery companies. Secure payments held until delivery is confirmed.",
+      },
+      {
+        name: "twitter:description",
+        content:
+          "Connect with verified delivery companies. Secure payments held until delivery is confirmed.",
+      },
+      { property: "og:image", content: "/goswift-logo.svg" },
+      { name: "twitter:image", content: "/goswift-logo.svg" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
@@ -110,9 +118,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap",
       },
+      { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
       { rel: "icon", type: "image/svg+xml", href: "/goswift-logo.svg" },
-      { rel: "icon", type: "image/png", href: "/favicon.png" },
-      { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
+      { rel: "apple-touch-icon", href: "/goswift-logo.svg" },
       { rel: "manifest", href: "/site.webmanifest" },
     ],
   }),
@@ -142,7 +150,6 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
         <Outlet />
         <Toaster richColors position="top-center" />
       </AuthProvider>
