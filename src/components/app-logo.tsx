@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 
-/** Brand mark: orange delivery van (matches app peach palette). */
+/** Brand mark: courier on scooter (navy palette). */
 const LOGO_SRC = "/goswift-logo.svg";
 
 interface AppLogoProps {
@@ -9,7 +9,7 @@ interface AppLogoProps {
   labelled?: boolean;
 }
 
-/** The GOSwift brand mark — orange delivery van with parcel. */
+/** The GOSwift brand mark — delivery courier on scooter. */
 export function AppLogo({ className, labelled = true }: AppLogoProps) {
   return (
     <img

@@ -1,13 +1,14 @@
 {
   "name": "GOSwift",
   "short_name": "GOSwift",
-  "description": "Fast parcel delivery with verified couriers, live tracking and secure payment.",
+  "description": "Trusted delivery marketplace connecting businesses with verified delivery companies.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#fdf6ee",
-  "theme_color": "#fdf6ee",
+  "background_color": "#f7f9fc",
+  "theme_color": "#1e2a4a",
   "icons": [
     { "src": "/goswift-logo.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" },
     { "src": "/favicon.png", "sizes": "64x64", "type": "image/png" },
     { "src": "/favicon-32.png", "sizes": "32x32", "type": "image/png" },
     { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
