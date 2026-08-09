@@ -1,4 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="48" height="48" viewBox="0 0 48 48">
-  <image width="48" height="48" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAMAAABg3Am1AAAAYFBMVEX///////7+///+/v7//f36/P7u8v3z6vvd6v7Y5vzv4vrY4vPQ4frMz+e6xNudp9F3lN51iclmh95jhd1igdNegdhcfM9Zecpad8RedLhWc79Rb7pVYpVAV5A0PFsVGyi33589AAADt0lEQVR42nVWibKjIBDEl+AR5BRFzvz/X+4MqPEd22WlYlX3HEwDkseBrusezwZ8bT9PfB6EkO5BDx456E/aN4y/Mc/zSElHb4KOXsTphhnBpUJwSugl6O5x74JpEqrBLIpVBQqef/DnhoNvAMvCUUFu8X8WA3RjTj5KMAeB+v9Dn7kQQkqo5hSomqHrp796ndnrNSBeTJq1KVYoinxR9gd7buQDL4mKBVI8YSiQ4LMoRy2s0upTQcW6VEkPQ3z9iD1zjtSKoT3D8OTL0TbpWAt+NarkQR8m+qCvU1lbhyZOQSucMYbxK2WQSfMHFTUHs+vRNSHsLF2IZ2ux8rlOpRT5CpoPA9/dsiwfQYuvLMxIc6T3VEYvEki8c4HzuNtL0LHPVDfnNgbF9F8ybkZKUGRj3b67xr8JuGCsNjAOfV/0tMF8U5IwaPDQuq5LxUfAlWrrTXFblGS8zNu7gKQaFbmXAHpAT1qtNEACn/I95pTj+/0u2d68dwm4avU7FyXt2UuUtC4yl5widG2DWxsugTCcG85mxuax7zk064zzKeXiZcnR8waxLFvtAdaH9ZZ90dZBz7xkKpQCg/AyRchKaXXHVgWEQT3WOosteA6biQpGpMmlQA/RxcgxCoxSOXsIlFlXu4U9hCj6EZZAy+w1zDmbEKMex3qcsHAJ6gqsAgcOZ4paTMwF1pRDAwUqagKcpXWXwCwrb2eSxDfloZwEqhyzPzLo8EPgtPdecllfFDSAmpg8hyj92PPoQCBuJW3Yw641/AXb5Dq2CF5tR0Qvq+DMsKBhrN1czNHsUmqHS2RjsGKasKSR+eC2rQkqv1psUzKUDCOLCRLkmJzisLt6KcHuOwpqSY1fcygwG65MxIrAGU7O89SLnJmugnAToFl2v6g9wrhS7SBHK+ZplDklHwJY7S5AvkkQNSUUQIacczDzyHWGjDHALoLNdwqQbhc0NESG2EnCb4lWCg0+jwHoCBeb4HDvWpoAagFXY01g2BsdcBfUBCDJTYDIjY7V/CXAWcExgeR3Zada+yf8Hr4Jtq3uyXIGTz/Y4ANwAg5uUDXBFtMROZ/sTy3hgIezlVC51im7CEva6jjYuJI3fgxRP/FC4aalcHuozKMQJH/jg0DAhfIggwTfgfPAKq6O58SHHZEPm2+olyLh+lRsVXXjhzM6wnNyXLtCV3N/4/+iw+ncnRf7k8sz/qX4xYfL4vPpQF5C68/qXaQLXouB3D9OSDfgrfxf8KEj375m6jcOfuaQriN/4uT9A/oSkWfN5R9QAAAAAElFTkSuQmCC"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-label="GOSwift">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#5b7c99"/>
+      <stop offset="50%" stop-color="#2f4a6e"/>
+      <stop offset="100%" stop-color="#1a2a45"/>
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="56" fill="url(#bg)"/>
+  <g fill="none" stroke="#e8eef5" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="88" cy="176" r="28"/>
+    <circle cx="176" cy="176" r="28"/>
+    <path d="M88 176 L120 120 L168 120 L176 176"/>
+    <path d="M120 120 L120 96 L148 96"/>
+    <path d="M148 96 L168 120"/>
+  </g>
+  <circle cx="88" cy="176" r="12" fill="#e8eef5"/>
+  <circle cx="176" cy="176" r="12" fill="#e8eef5"/>
+  <path d="M40 80 C70 50, 120 40, 160 55 C190 45, 220 60, 230 90" fill="none" stroke="#c5d4e8" stroke-width="10" stroke-linecap="round" opacity="0.5"/>
 </svg>
