@@ -1,72 +1,92 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
+  ArrowRight,
   BadgeCheck,
-  ChevronRight,
+  Building2,
+  CheckCircle2,
   Loader2,
+  Lock,
   MapPin,
-  Package,
   ShieldCheck,
+  Star,
+  Store,
   Truck,
 } from "lucide-react";
 import { useEffect } from "react";
 
 import { AppLogo } from "@/components/app-logo";
+import { SiteFooter } from "@/components/site-footer";
+import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/supabase/auth";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "GOSwift — Fast Parcel Delivery App" },
+      { title: "GOSwift — Your trusted delivery marketplace" },
       {
         name: "description",
         content:
-          "GOSwift delivers your parcels quickly with verified couriers, live tracking and secure payment. Available on iOS and Android.",
+          "Connect small businesses with verified delivery companies. Find. Compare. Accept. Pay. Deliver.",
       },
-      { property: "og:title", content: "GOSwift — Fast Parcel Delivery App" },
+      { property: "og:title", content: "GOSwift — Trusted delivery marketplace" },
       {
         property: "og:description",
         content:
-          "GOSwift delivers your parcels quickly with verified couriers, live tracking and secure payment. Available on iOS and Android.",
+          "Stop hunting riders on WhatsApp. Get quotes from verified delivery companies, pay securely, and track every package.",
       },
     ],
   }),
-  component: SplashPage,
+  component: HomePage,
 });
 
-function HeroArt() {
-  return (
-    <div className="relative mt-2 flex h-52 w-full max-w-[17rem] items-center justify-center sm:h-56">
-      <div className="absolute inset-x-4 bottom-6 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+const STEPS = [
+  {
+    n: "01",
+    title: "Enter pickup & drop-off",
+    body: "Tell us where the package starts and where it needs to land.",
+  },
+  {
+    n: "02",
+    title: "Compare verified providers",
+    body: "See company ratings, service areas, and clear delivery terms.",
+  },
+  {
+    n: "03",
+    title: "Accept a quote & pay",
+    body: "Payment is held by GOSwift until the delivery is confirmed.",
+  },
+  {
+    n: "04",
+    title: "Track & confirm",
+    body: "Follow progress live. Confirm receipt — then the provider is paid.",
+  },
+];
 
-      <span className="gs-drift absolute bottom-7 left-0 flex items-center gap-1">
-        <Truck className="h-6 w-6 text-primary" strokeWidth={2.25} />
-        <span className="h-1.5 w-1.5 rounded-full bg-primary/50" />
-      </span>
+const TRUST = [
+  {
+    icon: BadgeCheck,
+    title: "Verified companies",
+    body: "We work with delivery companies — not random individuals on the street.",
+  },
+  {
+    icon: Lock,
+    title: "Payment protection",
+    body: "Funds are held until you confirm successful delivery.",
+  },
+  {
+    icon: Star,
+    title: "Ratings & reputation",
+    body: "Good service earns better ratings and more opportunities.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Dispute process",
+    body: "Structured resolution instead of endless WhatsApp arguments.",
+  },
+];
 
-      <span className="absolute bottom-3 right-3 flex h-11 w-11 items-center justify-center">
-        <span className="gs-ring absolute h-11 w-11 rounded-full bg-primary/35" />
-        <span className="relative flex h-9 w-9 items-center justify-center rounded-full bg-card shadow-md shadow-primary/15 ring-1 ring-border">
-          <MapPin className="h-4 w-4 text-primary" strokeWidth={2.25} />
-        </span>
-      </span>
-
-      <div className="gs-float-slow relative flex h-40 w-40 items-center justify-center sm:h-44 sm:w-44">
-        <span className="absolute inset-2 rounded-[2.25rem] bg-primary/15 blur-2xl" />
-        <span className="absolute inset-6 rounded-[1.75rem] bg-accent/30 blur-xl" />
-        <AppLogo className="gs-pop relative h-36 w-36 drop-shadow-sm sm:h-40 sm:w-40 gs-delay-150" />
-      </div>
-    </div>
-  );
-}
-
-const FEATURES = [
-  { icon: BadgeCheck, label: "Verified", delay: "gs-delay-200" },
-  { icon: Package, label: "Tracked", delay: "gs-delay-300" },
-  { icon: ShieldCheck, label: "Secure pay", delay: "gs-delay-400" },
-] as const;
-
-function SplashPage() {
+function HomePage() {
   const { user, loading, homePath } = useAuth();
   const navigate = useNavigate();
 
@@ -88,95 +108,185 @@ function SplashPage() {
   }
 
   return (
-    <div className="flex min-h-[100dvh] justify-center bg-secondary/50">
-      <main className="relative flex h-[100dvh] w-full max-w-md flex-col overflow-hidden bg-background shadow-xl shadow-primary/5">
-        <section className="pt-safe relative flex flex-1 flex-col items-center justify-center overflow-hidden bg-gradient-to-b from-accent/30 via-primary/8 to-background px-6">
-          <div className="pointer-events-none absolute -left-20 top-8 h-56 w-56 rounded-full bg-primary/12 blur-3xl gs-blob" />
-          <div className="pointer-events-none absolute -right-16 top-28 h-48 w-48 rounded-full bg-accent/30 blur-3xl gs-blob gs-delay-400" />
+    <div className="flex min-h-screen flex-col bg-background">
+      <SiteHeader />
 
-          <div className="gs-rise relative flex flex-col items-center text-center">
-            <div className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-card/80 px-3 py-1 shadow-sm backdrop-blur-sm">
-              <span className="h-1.5 w-1.5 rounded-full bg-success" />
-              <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">
-                GOSwift
+      {/* Hero */}
+      <section className="relative overflow-hidden border-b border-border">
+        <div className="pointer-events-none absolute -left-24 top-0 h-72 w-72 rounded-full bg-primary/10 blur-3xl gs-blob" />
+        <div className="pointer-events-none absolute -right-20 bottom-0 h-64 w-64 rounded-full bg-accent/40 blur-3xl gs-blob" />
+        <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-4 py-16 sm:px-6 lg:grid-cols-2 lg:py-24">
+          <div className="gs-rise">
+            <p className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-secondary px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">
+              Trusted delivery marketplace
+            </p>
+            <h1 className="mt-5 font-display text-4xl font-bold leading-[1.1] tracking-tight text-foreground sm:text-5xl lg:text-[3.25rem]">
+              Find. Compare.
+              <br />
+              <span className="text-primary">Accept. Pay. Deliver.</span>
+            </h1>
+            <p className="mt-5 max-w-lg text-base leading-relaxed text-muted-foreground sm:text-lg">
+              GOSwift connects small businesses with verified delivery companies. Stop searching
+              WhatsApp for riders — get clear quotes, protected payments, and full accountability.
+            </p>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <Button asChild size="lg" className="gs-glow">
+                <Link to="/auth" search={{ mode: "signup" }}>
+                  I need deliveries
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
+              <Button asChild size="lg" variant="outline">
+                <Link to="/for-providers">I run a delivery company</Link>
+              </Button>
+            </div>
+            <div className="mt-8 flex flex-wrap gap-4 text-xs font-medium text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5">
+                <CheckCircle2 className="h-4 w-4 text-primary" /> Verified providers
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <CheckCircle2 className="h-4 w-4 text-primary" /> Held payments
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <CheckCircle2 className="h-4 w-4 text-primary" /> Live tracking
               </span>
             </div>
-            <h1 className="mt-3 font-display text-[2.15rem] font-bold leading-tight tracking-tight text-foreground sm:text-4xl">
-              Fast delivery,
-              <br />
-              <span className="text-primary">zero stress</span>
-            </h1>
-            <p className="mt-2 max-w-[16rem] text-sm text-muted-foreground">
-              Verified couriers from pickup to your door.
-            </p>
           </div>
 
-          <HeroArt />
-        </section>
-
-        <section className="pb-safe gs-slide-up relative -mt-6 rounded-t-[1.75rem] bg-card px-6 pt-5 shadow-[0_-16px_48px_-28px_oklch(0.64_0.19_36_/_0.45)]">
-          <span className="mx-auto mb-5 block h-1.5 w-10 rounded-full bg-border" />
-
-          <h2 className="gs-rise text-center font-display text-xl font-bold leading-snug text-card-foreground sm:text-2xl gs-delay-100">
-            Receive the world at
-            <br />
-            your doorstep
-          </h2>
-          <p className="gs-rise mx-auto mt-2.5 max-w-xs text-center text-sm leading-relaxed text-muted-foreground gs-delay-150">
-            Transparent quotes, live tracking, and payment released only when your parcel arrives.
-          </p>
-
-          <div className="mt-5 grid grid-cols-3 gap-2">
-            {FEATURES.map((item) => {
-              const Icon = item.icon;
-              return (
-                <div
-                  key={item.label}
-                  className={`gs-rise flex flex-col items-center gap-1.5 rounded-2xl bg-secondary/80 px-2 py-3 ${item.delay}`}
-                >
-                  <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-card text-primary shadow-sm">
-                    <Icon className="h-4 w-4" strokeWidth={2.25} />
-                  </span>
-                  <span className="text-[11px] font-medium text-muted-foreground">{item.label}</span>
+          <div className="gs-rise relative mx-auto w-full max-w-md gs-delay-150">
+            <div className="rounded-[2rem] border border-border bg-card p-6 shadow-2xl shadow-primary/10">
+              <div className="flex items-center gap-3">
+                <AppLogo className="h-12 w-12 rounded-2xl" labelled={false} />
+                <div>
+                  <p className="font-display text-lg font-bold">GOSwift</p>
+                  <p className="text-xs text-muted-foreground">Business → Provider → Rider</p>
                 </div>
-              );
-            })}
+              </div>
+              <div className="mt-6 space-y-3">
+                {[
+                  { icon: Store, label: "Business posts a job", sub: "Pickup + drop-off + package" },
+                  { icon: Building2, label: "Verified company quotes", sub: "Price + ETA in ₦" },
+                  { icon: Lock, label: "Payment held securely", sub: "Released after confirm" },
+                  { icon: Truck, label: "Rider delivers", sub: "Status updates live" },
+                ].map((row) => (
+                  <div
+                    key={row.label}
+                    className="flex items-center gap-3 rounded-2xl bg-secondary/70 p-3"
+                  >
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-card text-primary shadow-sm">
+                      <row.icon className="h-5 w-5" />
+                    </span>
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">{row.label}</p>
+                      <p className="text-xs text-muted-foreground">{row.sub}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
+        </div>
+      </section>
 
-          <Button
-            asChild
-            size="lg"
-            className="tap-scale gs-glow mt-6 h-14 w-full rounded-2xl text-base font-semibold gs-rise gs-delay-450"
-          >
-            <Link to="/auth" search={{ mode: "signup" }}>
-              Get started
-            </Link>
-          </Button>
-
-          <div className="gs-rise mt-4 flex items-center justify-between gap-3 pb-3 text-sm gs-delay-500">
-            <Link
-              to="/auth"
-              search={{ mode: "signin" }}
-              className="font-semibold text-primary transition-colors hover:text-primary/80"
+      {/* Problem */}
+      <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
+        <div className="max-w-2xl">
+          <h2 className="font-display text-3xl font-bold text-foreground">
+            Delivery shouldn&apos;t be a daily headache
+          </h2>
+          <p className="mt-3 text-muted-foreground">
+            Fashion sellers, food vendors, online shops and retailers waste time calling around for
+            riders, unclear prices, and unknown faces. GOSwift replaces the chaos with a simple
+            marketplace process.
+          </p>
+        </div>
+        <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {[
+            "Hard to know which company to trust",
+            "Unclear or inconsistent prices",
+            "No idea who will actually deliver",
+            "Little accountability when things go wrong",
+            "WhatsApp threads become confusing",
+            "Hours lost hunting for availability",
+          ].map((item) => (
+            <div
+              key={item}
+              className="rounded-2xl border border-border bg-card p-5 text-sm text-card-foreground shadow-sm"
             >
-              I already have an account
-            </Link>
-            <Link
-              to="/for-providers"
-              className="inline-flex items-center gap-0.5 text-muted-foreground transition-colors hover:text-foreground"
-            >
-              Drive with us
-              <ChevronRight className="h-4 w-4" />
-            </Link>
-          </div>
+              {item}
+            </div>
+          ))}
+        </div>
+      </section>
 
-          <div className="flex justify-center gap-1.5 pb-1" aria-hidden>
-            <span className="h-1.5 w-5 rounded-full bg-primary" />
-            <span className="h-1.5 w-1.5 rounded-full bg-border" />
-            <span className="h-1.5 w-1.5 rounded-full bg-border" />
+      {/* How it works */}
+      <section className="bg-secondary/50 py-16 sm:py-20">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <h2 className="text-center font-display text-3xl font-bold text-foreground">How it works</h2>
+          <p className="mx-auto mt-3 max-w-xl text-center text-muted-foreground">
+            Four steps from request to confirmed delivery — designed for businesses without their own
+            fleet.
+          </p>
+          <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {STEPS.map((s) => (
+              <div key={s.n} className="rounded-3xl bg-card p-6 shadow-sm">
+                <span className="font-display text-2xl font-bold text-primary">{s.n}</span>
+                <h3 className="mt-3 font-display text-base font-semibold text-card-foreground">
+                  {s.title}
+                </h3>
+                <p className="mt-2 text-sm text-muted-foreground">{s.body}</p>
+              </div>
+            ))}
           </div>
-        </section>
-      </main>
+        </div>
+      </section>
+
+      {/* Trust */}
+      <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
+        <h2 className="text-center font-display text-3xl font-bold">The GOSwift trust model</h2>
+        <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {TRUST.map((t) => (
+            <div key={t.title} className="rounded-3xl border border-border bg-card p-6">
+              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
+                <t.icon className="h-5 w-5" />
+              </span>
+              <h3 className="mt-4 font-display font-semibold">{t.title}</h3>
+              <p className="mt-2 text-sm text-muted-foreground">{t.body}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="bg-primary py-16 text-primary-foreground">
+        <div className="mx-auto max-w-3xl px-4 text-center sm:px-6">
+          <MapPin className="mx-auto h-8 w-8 opacity-80" />
+          <h2 className="mt-4 font-display text-3xl font-bold">
+            Make reliable delivery as easy as ordering online
+          </h2>
+          <p className="mt-3 text-primary-foreground/80">
+            Open GOSwift → enter locations → choose a verified provider → get a quote → accept → pay
+            → deliver.
+          </p>
+          <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+            <Button asChild size="lg" variant="secondary">
+              <Link to="/auth" search={{ mode: "signup" }}>
+                Start as a business
+              </Link>
+            </Button>
+            <Button
+              asChild
+              size="lg"
+              variant="outline"
+              className="border-primary-foreground/30 bg-transparent text-primary-foreground hover:bg-primary-foreground/10"
+            >
+              <Link to="/for-providers">Register your company</Link>
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      <SiteFooter />
     </div>
   );
 }

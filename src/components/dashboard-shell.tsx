@@ -39,17 +39,17 @@ export function DashboardShell({
         const Icon = item.icon;
         const active = item.to === pathname;
         const base =
-          "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors";
+          "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all";
         if (!item.to) {
           return (
             <span
               key={item.label}
-              className={cn(base, "cursor-default text-sidebar-foreground/45")}
-              title="Coming in a later release"
+              className={cn(base, "cursor-default text-sidebar-foreground/40")}
+              title="Coming soon"
             >
               <Icon className="h-4 w-4 shrink-0" />
               <span className="truncate">{item.label}</span>
-              <span className="ml-auto rounded bg-sidebar-accent px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-sidebar-accent-foreground/70">
+              <span className="ml-auto rounded-md bg-sidebar-accent px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-sidebar-accent-foreground/60">
                 Soon
               </span>
             </span>
@@ -63,8 +63,8 @@ export function DashboardShell({
             className={cn(
               base,
               active
-                ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-md shadow-primary/20"
+                : "text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
             )}
           >
             <Icon className="h-4 w-4 shrink-0" />
@@ -76,24 +76,28 @@ export function DashboardShell({
   );
 
   return (
-    <div className="flex min-h-screen bg-muted/40">
-      {/* Desktop sidebar */}
-      <aside className="hidden w-64 shrink-0 flex-col bg-sidebar p-4 lg:flex">
-        <Link to="/" className="mb-6 flex items-center gap-2 px-1">
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+    <div className="flex min-h-screen bg-muted/30">
+      <aside className="hidden w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar p-4 lg:flex">
+        <Link to="/" className="mb-8 flex items-center gap-2.5 px-1">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-sidebar-primary text-sidebar-primary-foreground shadow-lg shadow-primary/30">
             <Package className="h-5 w-5" />
           </span>
-          <span className="font-display text-lg font-bold text-sidebar-foreground">GOSwift</span>
+          <div>
+            <span className="font-display text-lg font-bold text-sidebar-foreground">GOSwift</span>
+            <p className="text-[10px] font-medium uppercase tracking-wider text-sidebar-foreground/50">
+              Marketplace
+            </p>
+          </div>
         </Link>
         {nav}
-        <div className="mt-auto border-t border-sidebar-border pt-4">
-          <p className="truncate px-3 text-xs text-sidebar-foreground/60">
+        <div className="mt-auto rounded-2xl border border-sidebar-border bg-sidebar-accent/40 p-3">
+          <p className="truncate text-xs font-medium text-sidebar-foreground">
             {profile?.full_name || user?.email}
           </p>
           <Button
             variant="ghost"
             size="sm"
-            className="mt-2 w-full justify-start text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            className="mt-2 w-full justify-start text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
             onClick={() => void signOut()}
           >
             Sign out
@@ -101,19 +105,16 @@ export function DashboardShell({
         </div>
       </aside>
 
-      {/* Mobile drawer */}
       {open ? (
         <div className="fixed inset-0 z-50 lg:hidden">
           <button
             aria-label="Close menu"
-            className="absolute inset-0 bg-foreground/50"
+            className="absolute inset-0 bg-foreground/40 backdrop-blur-sm"
             onClick={() => setOpen(false)}
           />
-          <div className="absolute inset-y-0 left-0 flex w-72 flex-col bg-sidebar p-4">
+          <div className="absolute inset-y-0 left-0 flex w-72 flex-col bg-sidebar p-4 shadow-2xl">
             <div className="mb-6 flex items-center justify-between">
-              <span className="font-display text-lg font-bold text-sidebar-foreground">
-                GOSwift
-              </span>
+              <span className="font-display text-lg font-bold text-sidebar-foreground">GOSwift</span>
               <button
                 aria-label="Close menu"
                 onClick={() => setOpen(false)}
@@ -136,19 +137,17 @@ export function DashboardShell({
       ) : null}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-16 items-center gap-3 border-b border-border bg-background px-4 sm:px-6">
+        <header className="flex h-16 items-center gap-3 border-b border-border bg-card/80 px-4 backdrop-blur sm:px-6">
           <button
             aria-label="Open menu"
             onClick={() => setOpen(true)}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-border lg:hidden"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border lg:hidden"
           >
             <Menu className="h-5 w-5" />
           </button>
           <div className="min-w-0 flex-1">
             <h1 className="truncate font-display text-lg font-semibold text-foreground">{title}</h1>
-            {subtitle ? (
-              <p className="truncate text-xs text-muted-foreground">{subtitle}</p>
-            ) : null}
+            {subtitle ? <p className="truncate text-xs text-muted-foreground">{subtitle}</p> : null}
           </div>
           {actions}
           <Button asChild variant="ghost" size="icon" aria-label="Profile">
