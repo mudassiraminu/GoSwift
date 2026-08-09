@@ -8,27 +8,22 @@ import {
   MapPin,
   PackagePlus,
   Search,
-  ScanLine,
   Truck,
-  Zap,
 } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { MobileAppShell } from "@/components/mobile/app-shell";
 import { PullToRefresh } from "@/components/mobile/pull-to-refresh";
 import { RoleGuard } from "@/components/role-guard";
+import { listMyRequests } from "@/lib/marketplace/api";
 import { useAuth } from "@/lib/supabase/auth";
+import type { DeliveryRequest } from "@/lib/supabase/types";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
     meta: [
       { title: "My deliveries — GOSwift" },
       { name: "description", content: "Track your GOSwift parcels, quotes and payments." },
-      { property: "og:title", content: "My deliveries — GOSwift" },
-      {
-        property: "og:description",
-        content: "Track your GOSwift parcels, quotes and payments from your phone.",
-      },
     ],
   }),
   component: () => (
@@ -38,26 +33,31 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
   ),
 });
 
-interface Shipment {
-  id: string;
-  title: string;
-  code: string;
-  from: string;
-  eta: string;
-  progress: number;
-  icon: typeof Box;
-}
-
-const shipments: Shipment[] = [];
-
 function CustomerHome() {
-  const { profile } = useAuth();
-  const [lastSync, setLastSync] = useState<string>("just now");
+  const { profile, user } = useAuth();
+  const [lastSync, setLastSync] = useState("just now");
+  const [requests, setRequests] = useState<DeliveryRequest[]>([]);
+
+  const load = useCallback(async () => {
+    if (!user) return;
+    try {
+      const rows = await listMyRequests(user.id);
+      setRequests(rows);
+    } catch {
+      /* empty ok when schema not migrated yet */
+    }
+  }, [user]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   const firstName = profile?.full_name?.split(" ")[0] ?? "there";
+  const openCount = requests.filter((r) => ["open", "quoted", "assigned"].includes(r.status)).length;
+  const doneCount = requests.filter((r) => ["completed", "delivered"].includes(r.status)).length;
 
   async function handleRefresh() {
-    await new Promise((r) => setTimeout(r, 900));
+    await load();
     setLastSync(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
   }
 
@@ -71,7 +71,7 @@ function CustomerHome() {
                 Hi {firstName}
               </p>
               <p className="mt-0.5 inline-flex items-center gap-1 text-xs text-muted-foreground">
-                <MapPin className="h-3.5 w-3.5 text-primary" /> Delivering with GOSwift
+                <MapPin className="h-3.5 w-3.5 text-primary" /> Find. Compare. Accept. Pay. Deliver.
               </p>
             </div>
             <button
@@ -91,13 +91,6 @@ function CustomerHome() {
                 className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
               />
             </div>
-            <button
-              type="button"
-              aria-label="Scan parcel code"
-              className="tap-scale flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/25"
-            >
-              <ScanLine className="h-5 w-5" />
-            </button>
           </div>
         </header>
       }
@@ -105,8 +98,8 @@ function CustomerHome() {
       <PullToRefresh onRefresh={handleRefresh}>
         <div className="gs-stagger space-y-6 px-5 pb-32">
           <div className="grid grid-cols-2 gap-3">
-            <button
-              type="button"
+            <Link
+              to="/new-delivery"
               className="tap-scale relative overflow-hidden rounded-3xl bg-primary p-4 text-left text-primary-foreground shadow-lg shadow-primary/25"
             >
               <span
@@ -119,29 +112,25 @@ function CustomerHome() {
                 <br />
                 Delivery
               </span>
-            </button>
-            <button
-              type="button"
+            </Link>
+            <Link
+              to="/dashboard"
               className="tap-scale relative overflow-hidden rounded-3xl bg-secondary p-4 text-left text-secondary-foreground"
             >
-              <span
-                aria-hidden
-                className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full bg-primary/10"
-              />
               <Truck className="h-7 w-7 text-primary" />
               <span className="mt-6 block font-display text-base font-semibold leading-tight">
-                Track
+                My
                 <br />
-                Package
+                Requests
               </span>
-            </button>
+            </Link>
           </div>
 
           <div className="grid grid-cols-3 gap-3 rounded-3xl bg-card p-4 shadow-sm">
             {[
-              { label: "In transit", value: "0", icon: Truck },
-              { label: "Delivered", value: "0", icon: CheckCircle2 },
-              { label: "Drafts", value: "0", icon: Clock },
+              { label: "Active", value: String(openCount), icon: Truck },
+              { label: "Done", value: String(doneCount), icon: CheckCircle2 },
+              { label: "All", value: String(requests.length), icon: Clock },
             ].map((s) => {
               const Icon = s.icon;
               return (
@@ -149,9 +138,7 @@ function CustomerHome() {
                   <span className="mx-auto flex h-9 w-9 items-center justify-center rounded-xl bg-secondary text-primary">
                     <Icon className="h-4 w-4" />
                   </span>
-                  <p className="mt-2 font-display text-lg font-bold text-card-foreground">
-                    {s.value}
-                  </p>
+                  <p className="mt-2 font-display text-lg font-bold text-card-foreground">{s.value}</p>
                   <p className="text-[11px] text-muted-foreground">{s.label}</p>
                 </div>
               );
@@ -160,82 +147,62 @@ function CustomerHome() {
 
           <section>
             <div className="flex items-center justify-between">
-              <h2 className="font-display text-base font-bold text-foreground">Current shipment</h2>
-              <button type="button" className="text-xs font-medium text-primary">
-                See all
-              </button>
+              <h2 className="font-display text-base font-bold text-foreground">Your deliveries</h2>
             </div>
 
-            {shipments.length === 0 ? (
+            {requests.length === 0 ? (
               <div className="mt-3 rounded-3xl border border-dashed border-border bg-card p-8 text-center">
                 <div className="gs-pop mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-secondary">
                   <Box className="h-6 w-6 text-primary" />
                 </div>
                 <h3 className="mt-4 font-display text-base font-semibold text-card-foreground">
-                  No parcels in transit
+                  No deliveries yet
                 </h3>
                 <p className="mx-auto mt-2 max-w-[16rem] text-sm text-muted-foreground">
-                  Book your first delivery and it will show up here with live progress.
+                  Post a request, get quotes from verified companies, pay securely, and track to the
+                  door.
                 </p>
+                <Link
+                  to="/new-delivery"
+                  className="mt-4 inline-flex text-sm font-medium text-primary"
+                >
+                  Create first delivery
+                </Link>
                 <p className="mt-4 text-[11px] text-muted-foreground">
                   Pull down to refresh · synced {lastSync}
                 </p>
               </div>
             ) : (
               <ul className="mt-3 space-y-3">
-                {shipments.map((s) => (
-                  <li key={s.id} className="rounded-3xl bg-card p-4 shadow-sm">
-                    <p className="font-semibold">{s.title}</p>
+                {requests.map((r) => (
+                  <li key={r.id}>
+                    <Link
+                      to="/request/$id"
+                      params={{ id: r.id }}
+                      className="tap-scale block rounded-3xl bg-card p-4 shadow-sm"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="truncate font-semibold text-card-foreground">
+                            {r.dropoff_city || r.dropoff_address}
+                          </p>
+                          <p className="truncate text-xs text-muted-foreground">
+                            From {r.pickup_city || r.pickup_address}
+                          </p>
+                        </div>
+                        <span className="shrink-0 rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium capitalize text-secondary-foreground">
+                          {r.status.replace("_", " ")}
+                        </span>
+                      </div>
+                      <p className="mt-2 flex items-center gap-1 text-xs text-primary">
+                        Open <ChevronRight className="h-3.5 w-3.5" />
+                      </p>
+                    </Link>
                   </li>
                 ))}
               </ul>
             )}
           </section>
-
-          <section>
-            <h2 className="font-display text-base font-bold text-foreground">Services</h2>
-            <div className="mt-3 grid grid-cols-3 gap-3">
-              {[
-                { label: "Same day", icon: Zap },
-                { label: "Bulk", icon: Box },
-                { label: "Nearby", icon: MapPin },
-              ].map((s) => {
-                const Icon = s.icon;
-                return (
-                  <button
-                    key={s.label}
-                    type="button"
-                    className="tap-scale rounded-2xl bg-secondary p-3 text-center"
-                  >
-                    <span className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-card text-primary">
-                      <Icon className="h-5 w-5" />
-                    </span>
-                    <span className="mt-2 block text-[11px] font-medium text-secondary-foreground">
-                      {s.label}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </section>
-
-          <Link
-            to="/profile"
-            className="tap-scale flex items-center gap-3 rounded-3xl bg-secondary p-4"
-          >
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-card text-primary">
-              <Box className="h-5 w-5" />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-semibold text-secondary-foreground">
-                Complete your profile
-              </span>
-              <span className="block truncate text-xs text-muted-foreground">
-                Add your phone number for delivery updates
-              </span>
-            </span>
-            <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
-          </Link>
         </div>
       </PullToRefresh>
     </MobileAppShell>
