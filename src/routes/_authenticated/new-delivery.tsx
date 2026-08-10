@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Loader2, MapPin, Package } from "lucide-react";
-import { useState } from "react";
+import { ArrowLeft, Building2, Loader2, MapPin, Package } from "lucide-react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { MobileAppShell } from "@/components/mobile/app-shell";
@@ -9,8 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { createRequest } from "@/lib/marketplace/api";
+import { createRequest, listListedCompanies } from "@/lib/marketplace/api";
 import { useAuth } from "@/lib/supabase/auth";
+import type { DeliveryProvider } from "@/lib/supabase/types";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/new-delivery")({
   head: () => ({
@@ -18,7 +20,7 @@ export const Route = createFileRoute("/_authenticated/new-delivery")({
       { title: "New delivery — GOSwift" },
       {
         name: "description",
-        content: "Create a delivery request and get quotes from verified providers.",
+        content: "Choose a delivery company and request a pickup.",
       },
     ],
   }),
@@ -32,8 +34,11 @@ export const Route = createFileRoute("/_authenticated/new-delivery")({
 function NewDeliveryPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+  const [companies, setCompanies] = useState<DeliveryProvider[]>([]);
+  const [loadingCompanies, setLoadingCompanies] = useState(true);
+  const [selected, setSelected] = useState<DeliveryProvider | null>(null);
 
   const [pickupAddress, setPickupAddress] = useState("");
   const [pickupCity, setPickupCity] = useState("");
@@ -47,8 +52,20 @@ function NewDeliveryPage() {
   const [weight, setWeight] = useState("");
   const [notes, setNotes] = useState("");
 
+  useEffect(() => {
+    void (async () => {
+      try {
+        setCompanies(await listListedCompanies());
+      } catch {
+        toast.error("Could not load companies");
+      } finally {
+        setLoadingCompanies(false);
+      }
+    })();
+  }, []);
+
   async function handleSubmit() {
-    if (!user) return;
+    if (!user || !selected) return;
     if (!pickupAddress.trim() || !dropoffAddress.trim()) {
       toast.error("Pickup and delivery addresses are required.");
       return;
@@ -67,8 +84,10 @@ function NewDeliveryPage() {
         package_description: packageDescription.trim() || undefined,
         package_weight_kg: weight ? Number(weight) : undefined,
         notes: notes.trim() || undefined,
+        preferred_provider_id: selected.id,
+        preferred_company_name: selected.company_name,
       });
-      toast.success("Delivery request posted — providers can quote now.");
+      toast.success("Request sent. We will contact the company and return with a price.");
       await navigate({ to: "/request/$id", params: { id: req.id } });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not create request");
@@ -89,28 +108,86 @@ function NewDeliveryPage() {
           </Link>
           <div>
             <h1 className="font-display text-lg font-bold">New delivery</h1>
-            <p className="text-xs text-muted-foreground">Step {step} of 3</p>
+            <p className="text-xs text-muted-foreground">
+              {step === 0 ? "Choose company" : `Step ${step} of 3`}
+            </p>
           </div>
         </header>
       }
     >
       <div className="space-y-5 px-5 pb-32 pt-4">
-        <div className="flex gap-2">
-          {[1, 2, 3].map((s) => (
-            <div
-              key={s}
-              className={`h-1.5 flex-1 rounded-full transition-colors ${
-                s <= step ? "bg-primary" : "bg-secondary"
-              }`}
-            />
-          ))}
-        </div>
+        {step > 0 ? (
+          <div className="flex gap-2">
+            {[1, 2, 3].map((s) => (
+              <div
+                key={s}
+                className={`h-1.5 flex-1 rounded-full transition-colors ${
+                  s <= step ? "bg-primary" : "bg-secondary"
+                }`}
+              />
+            ))}
+          </div>
+        ) : null}
+
+        {step === 0 ? (
+          <div className="gs-rise space-y-4">
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <Building2 className="h-4 w-4 text-primary" /> Choose a delivery company
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Pick who you want to handle this package. We will contact them with your details.
+            </p>
+            {loadingCompanies ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="h-7 w-7 animate-spin text-primary" />
+              </div>
+            ) : companies.length === 0 ? (
+              <div className="rounded-3xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+                No companies listed yet. Ask the GOSwift team to add partners.
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {companies.map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => setSelected(c)}
+                    className={cn(
+                      "tap-scale w-full rounded-2xl border p-4 text-left transition-colors",
+                      selected?.id === c.id
+                        ? "border-primary bg-primary/10"
+                        : "border-border bg-card hover:bg-secondary/50",
+                    )}
+                  >
+                    <p className="font-semibold">{c.company_name}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {[c.city, c.office_address, c.phone].filter(Boolean).join(" · ") ||
+                        "Address on file with GOSwift"}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            )}
+            <Button
+              className="h-12 w-full rounded-xl"
+              disabled={!selected}
+              onClick={() => setStep(1)}
+            >
+              Continue with {selected?.company_name ?? "company"}
+            </Button>
+          </div>
+        ) : null}
 
         {step === 1 ? (
           <div className="gs-rise space-y-4">
-            <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+            <div className="flex items-center gap-2 text-sm font-medium">
               <MapPin className="h-4 w-4 text-primary" /> Pickup
             </div>
+            {selected ? (
+              <p className="rounded-xl bg-secondary px-3 py-2 text-xs text-muted-foreground">
+                Company: <span className="font-medium text-foreground">{selected.company_name}</span>
+              </p>
+            ) : null}
             <div className="space-y-2">
               <Label htmlFor="pickup">Pickup address</Label>
               <Input
@@ -126,7 +203,7 @@ function NewDeliveryPage() {
                 id="pickupCity"
                 value={pickupCity}
                 onChange={(e) => setPickupCity(e.target.value)}
-                placeholder="e.g. Lagos"
+                placeholder="e.g. Kano"
               />
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -148,15 +225,20 @@ function NewDeliveryPage() {
                 />
               </div>
             </div>
-            <Button className="h-12 w-full rounded-xl" onClick={() => setStep(2)}>
-              Continue
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" className="h-12 flex-1 rounded-xl" onClick={() => setStep(0)}>
+                Back
+              </Button>
+              <Button className="h-12 flex-1 rounded-xl" onClick={() => setStep(2)}>
+                Continue
+              </Button>
+            </div>
           </div>
         ) : null}
 
         {step === 2 ? (
           <div className="gs-rise space-y-4">
-            <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+            <div className="flex items-center gap-2 text-sm font-medium">
               <MapPin className="h-4 w-4 text-primary" /> Delivery
             </div>
             <div className="space-y-2">
@@ -174,7 +256,6 @@ function NewDeliveryPage() {
                 id="dropoffCity"
                 value={dropoffCity}
                 onChange={(e) => setDropoffCity(e.target.value)}
-                placeholder="e.g. Abuja"
               />
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -209,7 +290,7 @@ function NewDeliveryPage() {
 
         {step === 3 ? (
           <div className="gs-rise space-y-4">
-            <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+            <div className="flex items-center gap-2 text-sm font-medium">
               <Package className="h-4 w-4 text-primary" /> Package
             </div>
             <div className="space-y-2">
@@ -240,16 +321,19 @@ function NewDeliveryPage() {
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 rows={2}
-                placeholder="Fragile, call before arrival…"
               />
             </div>
             <div className="flex gap-2">
               <Button variant="outline" className="h-12 flex-1 rounded-xl" onClick={() => setStep(2)}>
                 Back
               </Button>
-              <Button className="h-12 flex-1 rounded-xl" disabled={submitting} onClick={() => void handleSubmit()}>
+              <Button
+                className="h-12 flex-1 rounded-xl"
+                disabled={submitting}
+                onClick={() => void handleSubmit()}
+              >
                 {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                Post request
+                Submit request
               </Button>
             </div>
           </div>

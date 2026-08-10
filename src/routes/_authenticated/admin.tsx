@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { LayoutDashboard, Loader2, Package, Phone } from "lucide-react";
+import { Building2, LayoutDashboard, Loader2, Package, Phone } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -8,18 +8,25 @@ import { RoleGuard } from "@/components/role-guard";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { listAllRequests } from "@/lib/marketplace/api";
-import { supabase } from "@/lib/supabase/client";
-import type { DeliveryRequest } from "@/lib/supabase/types";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  adminAddCompany,
+  adminPostPrice,
+  adminSetCourierContact,
+  formatMoney,
+  listAllCompaniesAdmin,
+  listAllRequests,
+} from "@/lib/marketplace/api";
+import { parseCompanyChoice } from "@/lib/marketplace/dispatch";
+import { useAuth } from "@/lib/supabase/auth";
+import type { DeliveryProvider, DeliveryRequest } from "@/lib/supabase/types";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
     meta: [
-      { title: "Dispatch — GOSwift" },
-      {
-        name: "description",
-        content: "See customer delivery requests and contact details for offline dispatch.",
-      },
+      { title: "Admin — GOSwift" },
+      { name: "description", content: "Manage companies and post prices for customer requests." },
     ],
   }),
   component: () => (
@@ -30,21 +37,36 @@ export const Route = createFileRoute("/_authenticated/admin")({
 });
 
 const nav: NavItem[] = [
-  { label: "Requests", to: "/admin", icon: LayoutDashboard },
-  { label: "All jobs", to: "/admin", icon: Package },
+  { label: "Requests", to: "/admin", icon: Package },
+  { label: "Companies", to: "/admin", icon: Building2 },
+  { label: "Overview", to: "/admin", icon: LayoutDashboard },
 ];
 
 function AdminDashboard() {
+  const { user } = useAuth();
   const [requests, setRequests] = useState<DeliveryRequest[]>([]);
+  const [companies, setCompanies] = useState<DeliveryProvider[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
+  const [priceDraft, setPriceDraft] = useState<Record<string, string>>({});
+  const [courierName, setCourierName] = useState<Record<string, string>>({});
+  const [courierPhone, setCourierPhone] = useState<Record<string, string>>({});
+  const [newCo, setNewCo] = useState({
+    company_name: "",
+    phone: "",
+    office_address: "",
+    city: "",
+    contact_person: "",
+  });
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      setRequests(await listAllRequests());
+      const [reqs, cos] = await Promise.all([listAllRequests(), listAllCompaniesAdmin()]);
+      setRequests(reqs);
+      setCompanies(cos.filter((c) => c.company_name !== "GOSwift Independent Couriers"));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to load requests");
+      toast.error(err instanceof Error ? err.message : "Load failed");
     } finally {
       setLoading(false);
     }
@@ -59,15 +81,70 @@ function AdminDashboard() {
     [requests],
   );
 
-  async function markStatus(id: string, status: "assigned" | "cancelled" | "completed") {
-    setBusy(id);
+  async function addCompany() {
+    if (!user || !newCo.company_name.trim()) {
+      toast.error("Company name required");
+      return;
+    }
+    setBusy("add-co");
     try {
-      const { error } = await supabase.from("delivery_requests").update({ status }).eq("id", id);
-      if (error) throw error;
-      toast.success(`Marked ${status}`);
+      await adminAddCompany(user.id, newCo);
+      toast.success("Company added — customers can select it");
+      setNewCo({ company_name: "", phone: "", office_address: "", city: "", contact_person: "" });
       await load();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Update failed");
+      toast.error(err instanceof Error ? err.message : "Could not add company");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function postPrice(req: DeliveryRequest) {
+    if (!user) return;
+    const amount = Number(priceDraft[req.id]);
+    if (!amount || amount <= 0) {
+      toast.error("Enter a valid price");
+      return;
+    }
+    setBusy(req.id + "-price");
+    try {
+      await adminPostPrice({ request: req, amount, adminId: user.id });
+      toast.success(`Price ${formatMoney(amount)} sent to customer`);
+      await load();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to post price");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function saveCourier(req: DeliveryRequest) {
+    if (!user) return;
+    const parsed = parseCompanyChoice(req.notes);
+    if (!parsed.providerId) {
+      toast.error("No company on this request");
+      return;
+    }
+    const name = courierName[req.id]?.trim();
+    const phone = courierPhone[req.id]?.trim();
+    if (!name || !phone) {
+      toast.error("Courier name and phone required");
+      return;
+    }
+    setBusy(req.id + "-courier");
+    try {
+      await adminSetCourierContact({
+        requestId: req.id,
+        providerId: parsed.providerId,
+        customerId: req.customer_id,
+        adminId: user.id,
+        courierName: name,
+        courierPhone: phone,
+      });
+      toast.success("Courier details saved — customer sees them after payment");
+      await load();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed");
     } finally {
       setBusy(null);
     }
@@ -75,164 +152,198 @@ function AdminDashboard() {
 
   return (
     <DashboardShell
-      title="Dispatch board"
-      subtitle="Customers request in-app · you find couriers offline"
+      title="GOSwift ops"
+      subtitle="Companies · contact offline · post price · courier details"
       navItems={nav}
     >
-      <div className="mx-auto max-w-5xl space-y-8">
-        <div className="grid gap-4 sm:grid-cols-3">
-          {[
-            { label: "Need courier now", value: String(openReqs.length) },
-            { label: "All requests", value: String(requests.length) },
-            {
-              label: "Assigned / closed",
-              value: String(requests.length - openReqs.length),
-            },
-          ].map((s) => (
-            <Card key={s.label} className="rounded-2xl">
-              <CardContent className="pt-6">
-                <p className="text-xs uppercase tracking-wider text-muted-foreground">{s.label}</p>
-                <p className="mt-2 font-display text-2xl font-bold">{s.value}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        <Card className="rounded-2xl border-dashed">
-          <CardContent className="pt-6 text-sm text-muted-foreground">
-            <p className="font-medium text-foreground">How dispatch works</p>
-            <ol className="mt-2 list-decimal space-y-1 pl-5">
-              <li>Customer registers and posts pickup → drop-off in the app.</li>
-              <li>You see the job here with phone numbers.</li>
-              <li>You find a courier outside the app (call / WhatsApp / your network).</li>
-              <li>Mark the job assigned when someone is on it.</li>
-            </ol>
-          </CardContent>
-        </Card>
+      <div className="mx-auto max-w-5xl space-y-10">
+        <section className="space-y-3">
+          <h2 className="font-display text-lg font-bold">Add delivery company</h2>
+          <Card className="rounded-2xl">
+            <CardContent className="grid gap-3 pt-6 sm:grid-cols-2">
+              <div className="space-y-1 sm:col-span-2">
+                <Label>Company name</Label>
+                <Input
+                  value={newCo.company_name}
+                  onChange={(e) => setNewCo((s) => ({ ...s, company_name: e.target.value }))}
+                  placeholder="Swift Logistics"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Phone</Label>
+                <Input
+                  value={newCo.phone}
+                  onChange={(e) => setNewCo((s) => ({ ...s, phone: e.target.value }))}
+                  placeholder="+234…"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>City</Label>
+                <Input
+                  value={newCo.city}
+                  onChange={(e) => setNewCo((s) => ({ ...s, city: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1 sm:col-span-2">
+                <Label>Office address</Label>
+                <Input
+                  value={newCo.office_address}
+                  onChange={(e) => setNewCo((s) => ({ ...s, office_address: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1 sm:col-span-2">
+                <Label>Contact person</Label>
+                <Input
+                  value={newCo.contact_person}
+                  onChange={(e) => setNewCo((s) => ({ ...s, contact_person: e.target.value }))}
+                />
+              </div>
+              <Button
+                className="sm:col-span-2"
+                disabled={busy === "add-co"}
+                onClick={() => void addCompany()}
+              >
+                {busy === "add-co" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                Save company to app list
+              </Button>
+            </CardContent>
+          </Card>
+          {companies.length > 0 ? (
+            <div className="grid gap-2 sm:grid-cols-2">
+              {companies.map((c) => (
+                <Card key={c.id} className="rounded-2xl">
+                  <CardContent className="pt-5 text-sm">
+                    <p className="font-semibold">{c.company_name}</p>
+                    <p className="mt-1 text-muted-foreground">
+                      {[c.city, c.office_address, c.phone].filter(Boolean).join(" · ")}
+                    </p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : null}
+        </section>
 
         {loading ? (
           <div className="flex justify-center py-16">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : (
-          <>
-            <section className="space-y-3">
-              <h2 className="font-display text-lg font-bold">Open — find a courier</h2>
-              {openReqs.length === 0 ? (
-                <Card className="rounded-2xl">
-                  <CardContent className="py-12 text-center text-sm text-muted-foreground">
-                    No open requests. When a customer posts a delivery, it appears here.
-                  </CardContent>
-                </Card>
-              ) : (
-                openReqs.map((req) => (
+          <section className="space-y-3">
+            <h2 className="font-display text-lg font-bold">
+              Requests ({openReqs.length} open / quoted)
+            </h2>
+            {openReqs.length === 0 ? (
+              <Card className="rounded-2xl">
+                <CardContent className="py-12 text-center text-sm text-muted-foreground">
+                  No open requests.
+                </CardContent>
+              </Card>
+            ) : (
+              openReqs.map((req) => {
+                const company = parseCompanyChoice(req.notes);
+                return (
                   <Card key={req.id} className="rounded-2xl">
                     <CardContent className="space-y-4 pt-6">
                       <div className="flex flex-wrap items-start justify-between gap-2">
-                        <div className="min-w-0">
+                        <div>
                           <p className="font-semibold">
-                            {req.pickup_city || req.pickup_address}
-                            <span className="text-muted-foreground"> → </span>
+                            {req.pickup_city || req.pickup_address} →{" "}
                             {req.dropoff_city || req.dropoff_address}
+                          </p>
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            Company:{" "}
+                            <span className="font-medium text-foreground">
+                              {company.companyName || req.service_type || "—"}
+                            </span>
                           </p>
                           <p className="mt-1 text-sm text-muted-foreground">
                             {req.package_description || "No package notes"}
                           </p>
-                          {req.notes ? (
-                            <p className="mt-1 text-xs text-muted-foreground">Note: {req.notes}</p>
-                          ) : null}
                         </div>
                         <StatusBadge status={req.status} />
                       </div>
 
-                      <div className="rounded-xl bg-secondary/60 p-3 text-sm">
-                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                          Contact (call outside app)
+                      <div className="rounded-xl bg-secondary/70 p-3 text-sm">
+                        <p className="text-xs font-medium uppercase text-muted-foreground">
+                          Call customer / pickup
                         </p>
-                        <div className="mt-2 flex flex-col gap-1">
-                          {req.pickup_phone ? (
-                            <a
-                              href={`tel:${req.pickup_phone}`}
-                              className="inline-flex items-center gap-2 font-medium text-primary hover:underline"
-                            >
-                              <Phone className="h-4 w-4" />
-                              Pickup: {req.pickup_phone}
-                              {req.pickup_contact ? ` (${req.pickup_contact})` : ""}
-                            </a>
-                          ) : (
-                            <span className="text-muted-foreground">No pickup phone</span>
-                          )}
-                          {req.dropoff_phone ? (
-                            <a
-                              href={`tel:${req.dropoff_phone}`}
-                              className="inline-flex items-center gap-2 font-medium text-primary hover:underline"
-                            >
-                              <Phone className="h-4 w-4" />
-                              Drop-off: {req.dropoff_phone}
-                              {req.dropoff_contact ? ` (${req.dropoff_contact})` : ""}
-                            </a>
-                          ) : null}
-                        </div>
+                        {req.pickup_phone ? (
+                          <a
+                            href={`tel:${req.pickup_phone}`}
+                            className="mt-1 inline-flex items-center gap-2 text-primary hover:underline"
+                          >
+                            <Phone className="h-4 w-4" />
+                            {req.pickup_phone}
+                            {req.pickup_contact ? ` (${req.pickup_contact})` : ""}
+                          </a>
+                        ) : (
+                          <p className="text-muted-foreground">No pickup phone</p>
+                        )}
                         <p className="mt-2 text-xs text-muted-foreground">
-                          Full addresses: {req.pickup_address} → {req.dropoff_address}
+                          {req.pickup_address} → {req.dropoff_address}
                         </p>
                       </div>
 
-                      <div className="flex flex-wrap gap-2">
+                      <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Price from company (NGN)</Label>
+                          <Input
+                            type="number"
+                            min={0}
+                            placeholder="e.g. 3500"
+                            value={priceDraft[req.id] ?? ""}
+                            onChange={(e) =>
+                              setPriceDraft((m) => ({ ...m, [req.id]: e.target.value }))
+                            }
+                          />
+                        </div>
+                        <div className="flex items-end">
+                          <Button
+                            disabled={busy === req.id + "-price"}
+                            onClick={() => void postPrice(req)}
+                          >
+                            Post price to customer
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="grid gap-3 border-t border-border pt-4 sm:grid-cols-2">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Courier name (from company)</Label>
+                          <Input
+                            value={courierName[req.id] ?? ""}
+                            onChange={(e) =>
+                              setCourierName((m) => ({ ...m, [req.id]: e.target.value }))
+                            }
+                            placeholder="Sani Musa"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Courier phone</Label>
+                          <Input
+                            value={courierPhone[req.id] ?? ""}
+                            onChange={(e) =>
+                              setCourierPhone((m) => ({ ...m, [req.id]: e.target.value }))
+                            }
+                            placeholder="+234…"
+                          />
+                        </div>
                         <Button
-                          size="sm"
-                          disabled={busy === req.id}
-                          onClick={() => void markStatus(req.id, "assigned")}
-                        >
-                          Mark assigned (courier found offline)
-                        </Button>
-                        <Button
-                          size="sm"
+                          className="sm:col-span-2"
                           variant="outline"
-                          disabled={busy === req.id}
-                          onClick={() => void markStatus(req.id, "cancelled")}
+                          disabled={busy === req.id + "-courier"}
+                          onClick={() => void saveCourier(req)}
                         >
-                          Cancel
+                          Save courier (shown after customer pays)
                         </Button>
                       </div>
                     </CardContent>
                   </Card>
-                ))
-              )}
-            </section>
-
-            {requests.length > openReqs.length ? (
-              <section className="space-y-3">
-                <h2 className="font-display text-lg font-bold">History</h2>
-                {requests
-                  .filter((r) => !["open", "quoted", "draft"].includes(r.status))
-                  .slice(0, 20)
-                  .map((req) => (
-                    <Card key={req.id} className="rounded-2xl">
-                      <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-5 text-sm">
-                        <span className="truncate">
-                          {req.pickup_city || req.pickup_address} →{" "}
-                          {req.dropoff_city || req.dropoff_address}
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <StatusBadge status={req.status} />
-                          {req.status === "assigned" ? (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              disabled={busy === req.id}
-                              onClick={() => void markStatus(req.id, "completed")}
-                            >
-                              Complete
-                            </Button>
-                          ) : null}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-              </section>
-            ) : null}
-          </>
+                );
+              })
+            )}
+          </section>
         )}
       </div>
     </DashboardShell>
