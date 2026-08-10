@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
 import {
   AlertCircle,
-  Building2,
+  Bike,
   Check,
   Eye,
   EyeOff,
@@ -19,7 +19,7 @@ import { SupabaseSetupNotice } from "@/components/supabase-setup-notice";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ensureProviderProfile } from "@/lib/marketplace/api";
+import { ensureCourierProfile } from "@/lib/marketplace/api";
 import { supabase } from "@/lib/supabase/client";
 import {
   ROLE_HOME,
@@ -31,7 +31,7 @@ import { cn } from "@/lib/utils";
 
 type Mode = "signin" | "signup" | "forgot" | "verify";
 type Method = "email" | "phone";
-type SignupKind = "customer" | "provider";
+type SignupKind = "customer" | "courier";
 
 const KNOWN_HOME_PATHS = new Set<string>(Object.values(ROLE_HOME));
 
@@ -54,14 +54,12 @@ export const Route = createFileRoute("/auth")({
     mode: search.mode === "signup" ? ("signup" as const) : ("signin" as const),
     redirect: typeof search.redirect === "string" ? search.redirect : undefined,
   }),
-
   head: () => ({
     meta: [
       { title: "Sign in — GOSwift" },
       {
         name: "description",
-        content:
-          "Sign in or create a GOSwift account as a business or delivery company.",
+        content: "Sign in as a business that needs delivery, or as a courier who delivers.",
       },
     ],
   }),
@@ -76,15 +74,15 @@ const SIGNUP_KINDS: {
 }[] = [
   {
     value: "customer",
-    label: "I need deliveries",
-    hint: "Post jobs, compare quotes, pay securely",
+    label: "I need a delivery",
+    hint: "Post a job — we match a courier for you",
     icon: Store,
   },
   {
-    value: "provider",
-    label: "I run a delivery company",
-    hint: "Get leads, quote jobs, manage riders",
-    icon: Building2,
+    value: "courier",
+    label: "I deliver packages",
+    hint: "Register so admin can call you for jobs",
+    icon: Bike,
   },
 ];
 
@@ -152,18 +150,6 @@ function FieldError({ message }: { message?: string }) {
   );
 }
 
-async function provisionProvider(userId: string, fullName: string, phone?: string) {
-  await supabase.from("user_roles").upsert(
-    { user_id: userId, role: "provider" },
-    { onConflict: "user_id,role" },
-  );
-  await ensureProviderProfile(
-    userId,
-    fullName.trim() ? `${fullName.trim()}'s Company` : "My Delivery Company",
-    phone,
-  );
-}
-
 function AuthPage() {
   const { mode: initialMode, redirect: rawRedirect } = Route.useSearch();
   const redirectTo = safeRedirectPath(rawRedirect);
@@ -175,7 +161,7 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [kind, setKind] = useState<SignupKind>("customer");
-  const [companyName, setCompanyName] = useState("");
+  const [city, setCity] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
@@ -185,8 +171,6 @@ function AuthPage() {
 
   const errors: Record<string, string | undefined> = {};
   if (mode === "signup" && !fullName.trim()) errors.fullName = "Tell us your name.";
-  if (mode === "signup" && kind === "provider" && !companyName.trim())
-    errors.companyName = "Enter your company name.";
   if (mode === "forgot" || (mode !== "verify" && method === "email"))
     errors.email = validateEmail(email);
   if (mode !== "verify" && mode !== "forgot" && method === "phone")
@@ -230,19 +214,20 @@ function AuthPage() {
   }
 
   async function finishSignup(userId: string) {
-    if (kind === "provider") {
+    if (kind === "courier") {
+      await ensureCourierProfile(userId, {
+        full_name: fullName.trim() || "Courier",
+        phone: method === "phone" ? normalizePhone(phone) : undefined,
+        city: city.trim() || undefined,
+      });
+    } else {
       await supabase.from("user_roles").upsert(
-        { user_id: userId, role: "provider" },
+        { user_id: userId, role: "customer" },
         { onConflict: "user_id,role" },
-      );
-      await ensureProviderProfile(
-        userId,
-        companyName.trim() || `${fullName.trim()}'s Company`,
-        method === "phone" ? normalizePhone(phone) : undefined,
       );
     }
     await refresh();
-    await navigateAfterAuth(kind === "provider" ? "/provider" : "/dashboard");
+    await navigateAfterAuth(kind === "courier" ? "/rider" : "/dashboard");
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -250,7 +235,6 @@ function AuthPage() {
     if (hasErrors) {
       setTouched({
         fullName: true,
-        companyName: true,
         email: true,
         phone: true,
         password: true,
@@ -289,8 +273,8 @@ function AuthPage() {
       if (mode === "signup") {
         const meta = {
           full_name: fullName,
-          role: kind,
-          company_name: kind === "provider" ? companyName.trim() : undefined,
+          role: kind === "courier" ? "rider" : "customer",
+          city: kind === "courier" ? city.trim() : undefined,
         };
 
         if (method === "phone") {
@@ -363,9 +347,9 @@ function AuthPage() {
 
   const sub =
     mode === "signin"
-      ? "Welcome back to your delivery marketplace."
+      ? "Businesses request deliveries. Couriers get called for jobs."
       : mode === "signup"
-        ? "Businesses find providers. Providers get leads. Riders stay under their company."
+        ? "Need a delivery, or ready to deliver? Create an account."
         : mode === "verify"
           ? `Enter the 6-digit code we sent to ${normalizePhone(phone)}.`
           : "We'll email you a secure link to set a new password.";
@@ -377,26 +361,22 @@ function AuthPage() {
           aria-hidden
           className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full bg-primary-foreground/10 blur-2xl"
         />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -bottom-32 -left-16 h-96 w-96 rounded-full bg-primary-foreground/5 blur-3xl"
-        />
         <Link to="/" className="relative flex items-center gap-2">
           <AppLogo className="h-9 w-9 rounded-lg" labelled={false} />
           <span className="font-display text-lg font-bold">GOSwift</span>
         </Link>
         <div className="relative">
           <h2 className="max-w-sm font-display text-3xl font-bold leading-tight">
-            Find. Compare. Accept. Pay. Deliver.
+            Request. Match. Deliver.
           </h2>
           <p className="mt-4 max-w-md text-primary-foreground/75">
-            Sign up as a business that needs delivery, or as a delivery company that wants qualified
-            leads. Riders are added by their company — not as public accounts.
+            Customers post delivery jobs in the app. Couriers register with their phone. Our team
+            picks the right courier and contacts them.
           </p>
         </div>
         <p className="relative inline-flex items-center gap-2 text-xs text-primary-foreground/60">
           <ShieldCheck className="h-4 w-4" />
-          Protected payments · Verified providers · Clear accountability
+          Clear contact · Verified jobs · Simple dispatch
         </p>
       </div>
 
@@ -450,7 +430,7 @@ function AuthPage() {
                     onChange={(e) => setFullName(e.target.value)}
                     onBlur={() => markTouched("fullName")}
                     aria-invalid={!!show("fullName")}
-                    placeholder="Ada Okonkwo"
+                    placeholder="Musa Abdullahi"
                   />
                   <FieldError message={show("fullName")} />
                 </div>
@@ -491,23 +471,16 @@ function AuthPage() {
                       );
                     })}
                   </div>
-                  <p className="text-[11px] text-muted-foreground">
-                    Riders are invited by their delivery company — they don&apos;t create public
-                    GOSwift accounts.
-                  </p>
                 </div>
-                {kind === "provider" ? (
+                {kind === "courier" ? (
                   <div className="space-y-2">
-                    <Label htmlFor="companyName">Company name</Label>
+                    <Label htmlFor="city">City / area you cover</Label>
                     <Input
-                      id="companyName"
-                      value={companyName}
-                      onChange={(e) => setCompanyName(e.target.value)}
-                      onBlur={() => markTouched("companyName")}
-                      aria-invalid={!!show("companyName")}
-                      placeholder="Swift Logistics Ltd"
+                      id="city"
+                      value={city}
+                      onChange={(e) => setCity(e.target.value)}
+                      placeholder="Kano, Nassarawa…"
                     />
-                    <FieldError message={show("companyName")} />
                   </div>
                 ) : null}
               </>
@@ -544,7 +517,7 @@ function AuthPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   onBlur={() => markTouched("email")}
                   aria-invalid={!!show("email")}
-                  placeholder="you@company.com"
+                  placeholder="you@email.com"
                 />
                 <FieldError message={show("email")} />
               </div>
@@ -568,11 +541,6 @@ function AuthPage() {
                   placeholder="+234 801 234 5678"
                 />
                 <FieldError message={show("phone")} />
-                {!show("phone") ? (
-                  <p className="text-xs text-muted-foreground">
-                    Include country code, e.g. +234 for Nigeria.
-                  </p>
-                ) : null}
               </div>
             ) : null}
 
@@ -606,8 +574,7 @@ function AuthPage() {
                     type="button"
                     onClick={() => setShowPassword((v) => !v)}
                     aria-label={showPassword ? "Hide password" : "Show password"}
-                    aria-pressed={showPassword}
-                    className="tap-scale absolute inset-y-0 right-0 flex w-11 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
+                    className="tap-scale absolute inset-y-0 right-0 flex w-11 items-center justify-center text-muted-foreground"
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
@@ -640,9 +607,9 @@ function AuthPage() {
               {mode === "signin"
                 ? "Sign in"
                 : mode === "signup"
-                  ? kind === "provider"
-                    ? "Create company account"
-                    : "Create business account"
+                  ? kind === "courier"
+                    ? "Create courier account"
+                    : "Create account"
                   : mode === "verify"
                     ? "Verify & continue"
                     : "Send reset link"}
