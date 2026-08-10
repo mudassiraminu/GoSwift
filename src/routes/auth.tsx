@@ -1,7 +1,6 @@
 import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
 import {
   AlertCircle,
-  Bike,
   Check,
   Eye,
   EyeOff,
@@ -9,7 +8,6 @@ import {
   Mail,
   ShieldCheck,
   Smartphone,
-  Store,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -19,7 +17,6 @@ import { SupabaseSetupNotice } from "@/components/supabase-setup-notice";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ensureCourierProfile } from "@/lib/marketplace/api";
 import { supabase } from "@/lib/supabase/client";
 import {
   ROLE_HOME,
@@ -31,7 +28,6 @@ import { cn } from "@/lib/utils";
 
 type Mode = "signin" | "signup" | "forgot" | "verify";
 type Method = "email" | "phone";
-type SignupKind = "customer" | "courier";
 
 const KNOWN_HOME_PATHS = new Set<string>(Object.values(ROLE_HOME));
 
@@ -59,32 +55,12 @@ export const Route = createFileRoute("/auth")({
       { title: "Sign in — GOSwift" },
       {
         name: "description",
-        content: "Sign in as a business that needs delivery, or as a courier who delivers.",
+        content: "Request a delivery. GOSwift handles finding a courier for you.",
       },
     ],
   }),
   component: AuthPage,
 });
-
-const SIGNUP_KINDS: {
-  value: SignupKind;
-  label: string;
-  hint: string;
-  icon: typeof Store;
-}[] = [
-  {
-    value: "customer",
-    label: "I need a delivery",
-    hint: "Post a job — we match a courier for you",
-    icon: Store,
-  },
-  {
-    value: "courier",
-    label: "I deliver packages",
-    hint: "Register so admin can call you for jobs",
-    icon: Bike,
-  },
-];
 
 function normalizePhone(raw: string) {
   const digits = raw.replace(/[^\d+]/g, "");
@@ -160,8 +136,6 @@ function AuthPage() {
   const [otp, setOtp] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
-  const [kind, setKind] = useState<SignupKind>("customer");
-  const [city, setCity] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
@@ -214,32 +188,27 @@ function AuthPage() {
   }
 
   async function finishSignup(userId: string) {
-    if (kind === "courier") {
-      await ensureCourierProfile(userId, {
-        full_name: fullName.trim() || "Courier",
-        phone: method === "phone" ? normalizePhone(phone) : undefined,
-        city: city.trim() || undefined,
-      });
-    } else {
-      await supabase.from("user_roles").upsert(
-        { user_id: userId, role: "customer" },
-        { onConflict: "user_id,role" },
-      );
+    await supabase.from("user_roles").upsert(
+      { user_id: userId, role: "customer" },
+      { onConflict: "user_id,role" },
+    );
+    if (fullName.trim() || (method === "phone" && phone)) {
+      await supabase
+        .from("profiles")
+        .update({
+          full_name: fullName.trim() || null,
+          phone: method === "phone" ? normalizePhone(phone) : undefined,
+        })
+        .eq("id", userId);
     }
     await refresh();
-    await navigateAfterAuth(kind === "courier" ? "/rider" : "/dashboard");
+    await navigateAfterAuth("/dashboard");
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (hasErrors) {
-      setTouched({
-        fullName: true,
-        email: true,
-        phone: true,
-        password: true,
-        otp: true,
-      });
+      setTouched({ fullName: true, email: true, phone: true, password: true, otp: true });
       toast.error(Object.values(errors).find(Boolean) ?? "Please check the form.");
       return;
     }
@@ -271,19 +240,13 @@ function AuthPage() {
       }
 
       if (mode === "signup") {
-        const meta = {
-          full_name: fullName,
-          role: kind === "courier" ? "rider" : "customer",
-          city: kind === "courier" ? city.trim() : undefined,
-        };
+        const meta = { full_name: fullName, role: "customer" };
 
         if (method === "phone") {
           const { data, error } = await supabase.auth.signUp({
             phone: normalizePhone(phone),
             password,
-            options: {
-              data: { ...meta, phone: normalizePhone(phone) },
-            },
+            options: { data: { ...meta, phone: normalizePhone(phone) } },
           });
           if (error) throw error;
           if (!data.session) {
@@ -340,16 +303,16 @@ function AuthPage() {
     mode === "signin"
       ? "Sign in"
       : mode === "signup"
-        ? "Join GOSwift"
+        ? "Create account"
         : mode === "verify"
           ? "Verify your phone"
           : "Reset your password";
 
   const sub =
     mode === "signin"
-      ? "Businesses request deliveries. Couriers get called for jobs."
+      ? "Sign in to request a delivery."
       : mode === "signup"
-        ? "Need a delivery, or ready to deliver? Create an account."
+        ? "Only people who need a package delivered register here."
         : mode === "verify"
           ? `Enter the 6-digit code we sent to ${normalizePhone(phone)}.`
           : "We'll email you a secure link to set a new password.";
@@ -367,16 +330,16 @@ function AuthPage() {
         </Link>
         <div className="relative">
           <h2 className="max-w-sm font-display text-3xl font-bold leading-tight">
-            Request. Match. Deliver.
+            Request a delivery. We handle the rest.
           </h2>
           <p className="mt-4 max-w-md text-primary-foreground/75">
-            Customers post delivery jobs in the app. Couriers register with their phone. Our team
-            picks the right courier and contacts them.
+            Tell us pickup, drop-off and package details. Our team finds a suitable courier outside
+            the app and keeps you updated.
           </p>
         </div>
         <p className="relative inline-flex items-center gap-2 text-xs text-primary-foreground/60">
           <ShieldCheck className="h-4 w-4" />
-          Clear contact · Verified jobs · Simple dispatch
+          Simple requests · Human dispatch · Clear updates
         </p>
       </div>
 
@@ -421,69 +384,18 @@ function AuthPage() {
 
           <form onSubmit={handleSubmit} className="mt-6 space-y-4">
             {mode === "signup" ? (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="fullName">Your name</Label>
-                  <Input
-                    id="fullName"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    onBlur={() => markTouched("fullName")}
-                    aria-invalid={!!show("fullName")}
-                    placeholder="Musa Abdullahi"
-                  />
-                  <FieldError message={show("fullName")} />
-                </div>
-                <div className="space-y-2">
-                  <Label>I am signing up as</Label>
-                  <div className="grid gap-2">
-                    {SIGNUP_KINDS.map((r) => {
-                      const Icon = r.icon;
-                      return (
-                        <button
-                          type="button"
-                          key={r.value}
-                          onClick={() => setKind(r.value)}
-                          className={cn(
-                            "tap-scale flex gap-3 rounded-2xl border p-3.5 text-left transition-colors",
-                            kind === r.value
-                              ? "border-primary bg-primary/10 shadow-sm shadow-primary/10"
-                              : "border-border hover:bg-secondary",
-                          )}
-                        >
-                          <span
-                            className={cn(
-                              "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
-                              kind === r.value
-                                ? "bg-primary text-primary-foreground"
-                                : "bg-secondary text-primary",
-                            )}
-                          >
-                            <Icon className="h-5 w-5" />
-                          </span>
-                          <span>
-                            <span className="block text-sm font-semibold text-foreground">
-                              {r.label}
-                            </span>
-                            <span className="block text-xs text-muted-foreground">{r.hint}</span>
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-                {kind === "courier" ? (
-                  <div className="space-y-2">
-                    <Label htmlFor="city">City / area you cover</Label>
-                    <Input
-                      id="city"
-                      value={city}
-                      onChange={(e) => setCity(e.target.value)}
-                      placeholder="Kano, Nassarawa…"
-                    />
-                  </div>
-                ) : null}
-              </>
+              <div className="space-y-2">
+                <Label htmlFor="fullName">Your name</Label>
+                <Input
+                  id="fullName"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  onBlur={() => markTouched("fullName")}
+                  aria-invalid={!!show("fullName")}
+                  placeholder="Ada Okonkwo"
+                />
+                <FieldError message={show("fullName")} />
+              </div>
             ) : null}
 
             {mode === "verify" ? (
@@ -607,9 +519,7 @@ function AuthPage() {
               {mode === "signin"
                 ? "Sign in"
                 : mode === "signup"
-                  ? kind === "courier"
-                    ? "Create courier account"
-                    : "Create account"
+                  ? "Create account"
                   : mode === "verify"
                     ? "Verify & continue"
                     : "Send reset link"}

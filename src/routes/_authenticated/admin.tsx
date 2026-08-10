@@ -1,12 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import {
-  Bike,
-  LayoutDashboard,
-  Loader2,
-  Package,
-  Phone,
-  User,
-} from "lucide-react";
+import { LayoutDashboard, Loader2, Package, Phone } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -15,22 +8,17 @@ import { RoleGuard } from "@/components/role-guard";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import {
-  adminAssignCourier,
-  listAllCouriers,
-  listAllRequests,
-} from "@/lib/marketplace/api";
-import { useAuth } from "@/lib/supabase/auth";
-import type { DeliveryRequest, Rider } from "@/lib/supabase/types";
+import { listAllRequests } from "@/lib/marketplace/api";
+import { supabase } from "@/lib/supabase/client";
+import type { DeliveryRequest } from "@/lib/supabase/types";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
     meta: [
-      { title: "Admin dispatch — GOSwift" },
+      { title: "Dispatch — GOSwift" },
       {
         name: "description",
-        content: "See delivery requests and assign available couriers.",
+        content: "See customer delivery requests and contact details for offline dispatch.",
       },
     ],
   }),
@@ -42,27 +30,21 @@ export const Route = createFileRoute("/_authenticated/admin")({
 });
 
 const nav: NavItem[] = [
-  { label: "Dispatch", to: "/admin", icon: LayoutDashboard },
-  { label: "Requests", to: "/admin", icon: Package },
-  { label: "Couriers", to: "/admin", icon: Bike },
+  { label: "Requests", to: "/admin", icon: LayoutDashboard },
+  { label: "All jobs", to: "/admin", icon: Package },
 ];
 
 function AdminDashboard() {
-  const { user } = useAuth();
   const [requests, setRequests] = useState<DeliveryRequest[]>([]);
-  const [couriers, setCouriers] = useState<Rider[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
-  const [pick, setPick] = useState<Record<string, string>>({});
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [reqs, riders] = await Promise.all([listAllRequests(), listAllCouriers()]);
-      setRequests(reqs);
-      setCouriers(riders);
+      setRequests(await listAllRequests());
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to load dispatch data");
+      toast.error(err instanceof Error ? err.message : "Failed to load requests");
     } finally {
       setLoading(false);
     }
@@ -76,30 +58,16 @@ function AdminDashboard() {
     () => requests.filter((r) => ["open", "quoted", "draft"].includes(r.status)),
     [requests],
   );
-  const activeCouriers = useMemo(
-    () => couriers.filter((c) => c.status === "active"),
-    [couriers],
-  );
 
-  async function assign(req: DeliveryRequest) {
-    if (!user) return;
-    const riderId = pick[req.id];
-    if (!riderId) {
-      toast.error("Select a courier first");
-      return;
-    }
-    setBusy(req.id);
+  async function markStatus(id: string, status: "assigned" | "cancelled" | "completed") {
+    setBusy(id);
     try {
-      await adminAssignCourier({ request: req, riderId, adminId: user.id });
-      const courier = couriers.find((c) => c.id === riderId);
-      toast.success(
-        courier?.phone
-          ? `Assigned. Call courier: ${courier.phone}`
-          : "Courier assigned — check their profile for contact",
-      );
+      const { error } = await supabase.from("delivery_requests").update({ status }).eq("id", id);
+      if (error) throw error;
+      toast.success(`Marked ${status}`);
       await load();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Assign failed");
+      toast.error(err instanceof Error ? err.message : "Update failed");
     } finally {
       setBusy(null);
     }
@@ -107,16 +75,19 @@ function AdminDashboard() {
 
   return (
     <DashboardShell
-      title="Dispatch console"
-      subtitle="Requests in · pick a courier · call them"
+      title="Dispatch board"
+      subtitle="Customers request in-app · you find couriers offline"
       navItems={nav}
     >
       <div className="mx-auto max-w-5xl space-y-8">
         <div className="grid gap-4 sm:grid-cols-3">
           {[
-            { label: "Open requests", value: String(openReqs.length) },
+            { label: "Need courier now", value: String(openReqs.length) },
             { label: "All requests", value: String(requests.length) },
-            { label: "Active couriers", value: String(activeCouriers.length) },
+            {
+              label: "Assigned / closed",
+              value: String(requests.length - openReqs.length),
+            },
           ].map((s) => (
             <Card key={s.label} className="rounded-2xl">
               <CardContent className="pt-6">
@@ -127,6 +98,18 @@ function AdminDashboard() {
           ))}
         </div>
 
+        <Card className="rounded-2xl border-dashed">
+          <CardContent className="pt-6 text-sm text-muted-foreground">
+            <p className="font-medium text-foreground">How dispatch works</p>
+            <ol className="mt-2 list-decimal space-y-1 pl-5">
+              <li>Customer registers and posts pickup → drop-off in the app.</li>
+              <li>You see the job here with phone numbers.</li>
+              <li>You find a courier outside the app (call / WhatsApp / your network).</li>
+              <li>Mark the job assigned when someone is on it.</li>
+            </ol>
+          </CardContent>
+        </Card>
+
         {loading ? (
           <div className="flex justify-center py-16">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -134,11 +117,11 @@ function AdminDashboard() {
         ) : (
           <>
             <section className="space-y-3">
-              <h2 className="font-display text-lg font-bold">Open delivery requests</h2>
+              <h2 className="font-display text-lg font-bold">Open — find a courier</h2>
               {openReqs.length === 0 ? (
                 <Card className="rounded-2xl">
                   <CardContent className="py-12 text-center text-sm text-muted-foreground">
-                    No open requests right now. When a customer posts a job, it appears here.
+                    No open requests. When a customer posts a delivery, it appears here.
                   </CardContent>
                 </Card>
               ) : (
@@ -155,54 +138,62 @@ function AdminDashboard() {
                           <p className="mt-1 text-sm text-muted-foreground">
                             {req.package_description || "No package notes"}
                           </p>
-                          <p className="mt-1 flex flex-wrap gap-x-3 text-xs text-muted-foreground">
-                            {req.pickup_phone ? (
-                              <span className="inline-flex items-center gap-1">
-                                <Phone className="h-3 w-3" /> Pickup {req.pickup_phone}
-                              </span>
-                            ) : null}
-                            {req.dropoff_phone ? (
-                              <span className="inline-flex items-center gap-1">
-                                <Phone className="h-3 w-3" /> Dropoff {req.dropoff_phone}
-                              </span>
-                            ) : null}
-                          </p>
+                          {req.notes ? (
+                            <p className="mt-1 text-xs text-muted-foreground">Note: {req.notes}</p>
+                          ) : null}
                         </div>
                         <StatusBadge status={req.status} />
                       </div>
 
-                      <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
-                        <div className="space-y-1">
-                          <Label className="text-xs">Assign courier</Label>
-                          <select
-                            className="flex h-11 w-full rounded-xl border border-input bg-background px-3 text-sm"
-                            value={pick[req.id] ?? ""}
-                            onChange={(e) =>
-                              setPick((m) => ({ ...m, [req.id]: e.target.value }))
-                            }
-                          >
-                            <option value="">Select available courier…</option>
-                            {activeCouriers.map((c) => (
-                              <option key={c.id} value={c.id}>
-                                {c.full_name}
-                                {c.phone ? ` · ${c.phone}` : ""}
-                                {c.vehicle_type ? ` · ${c.vehicle_type}` : ""}
-                              </option>
-                            ))}
-                          </select>
+                      <div className="rounded-xl bg-secondary/60 p-3 text-sm">
+                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                          Contact (call outside app)
+                        </p>
+                        <div className="mt-2 flex flex-col gap-1">
+                          {req.pickup_phone ? (
+                            <a
+                              href={`tel:${req.pickup_phone}`}
+                              className="inline-flex items-center gap-2 font-medium text-primary hover:underline"
+                            >
+                              <Phone className="h-4 w-4" />
+                              Pickup: {req.pickup_phone}
+                              {req.pickup_contact ? ` (${req.pickup_contact})` : ""}
+                            </a>
+                          ) : (
+                            <span className="text-muted-foreground">No pickup phone</span>
+                          )}
+                          {req.dropoff_phone ? (
+                            <a
+                              href={`tel:${req.dropoff_phone}`}
+                              className="inline-flex items-center gap-2 font-medium text-primary hover:underline"
+                            >
+                              <Phone className="h-4 w-4" />
+                              Drop-off: {req.dropoff_phone}
+                              {req.dropoff_contact ? ` (${req.dropoff_contact})` : ""}
+                            </a>
+                          ) : null}
                         </div>
-                        <div className="flex items-end">
-                          <Button
-                            className="h-11 w-full sm:w-auto"
-                            disabled={busy === req.id}
-                            onClick={() => void assign(req)}
-                          >
-                            {busy === req.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : null}
-                            Assign & show contact
-                          </Button>
-                        </div>
+                        <p className="mt-2 text-xs text-muted-foreground">
+                          Full addresses: {req.pickup_address} → {req.dropoff_address}
+                        </p>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          size="sm"
+                          disabled={busy === req.id}
+                          onClick={() => void markStatus(req.id, "assigned")}
+                        >
+                          Mark assigned (courier found offline)
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={busy === req.id}
+                          onClick={() => void markStatus(req.id, "cancelled")}
+                        >
+                          Cancel
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>
@@ -210,64 +201,32 @@ function AdminDashboard() {
               )}
             </section>
 
-            <section className="space-y-3">
-              <h2 className="font-display text-lg font-bold">Courier directory</h2>
-              <p className="text-sm text-muted-foreground">
-                These are people who registered as couriers. Call the one that fits the route.
-              </p>
-              {couriers.length === 0 ? (
-                <Card className="rounded-2xl">
-                  <CardContent className="py-10 text-center text-sm text-muted-foreground">
-                    No couriers yet. They sign up in the app as “I deliver packages”.
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {couriers.map((c) => (
-                    <Card key={c.id} className="rounded-2xl">
-                      <CardContent className="flex items-start gap-3 pt-5">
-                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-secondary text-primary">
-                          <User className="h-5 w-5" />
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <p className="font-semibold">{c.full_name}</p>
-                            <StatusBadge status={c.status} />
-                          </div>
-                          <p className="mt-1 text-sm text-muted-foreground">
-                            {c.phone ? (
-                              <a className="text-primary hover:underline" href={`tel:${c.phone}`}>
-                                {c.phone}
-                              </a>
-                            ) : (
-                              "No phone on file"
-                            )}
-                          </p>
-                          {c.vehicle_type ? (
-                            <p className="mt-0.5 text-xs text-muted-foreground">{c.vehicle_type}</p>
-                          ) : null}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </section>
-
             {requests.length > openReqs.length ? (
               <section className="space-y-3">
-                <h2 className="font-display text-lg font-bold">Recent (assigned / closed)</h2>
+                <h2 className="font-display text-lg font-bold">History</h2>
                 {requests
                   .filter((r) => !["open", "quoted", "draft"].includes(r.status))
-                  .slice(0, 12)
+                  .slice(0, 20)
                   .map((req) => (
                     <Card key={req.id} className="rounded-2xl">
-                      <CardContent className="flex items-center justify-between gap-3 pt-5 text-sm">
+                      <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-5 text-sm">
                         <span className="truncate">
                           {req.pickup_city || req.pickup_address} →{" "}
                           {req.dropoff_city || req.dropoff_address}
                         </span>
-                        <StatusBadge status={req.status} />
+                        <div className="flex items-center gap-2">
+                          <StatusBadge status={req.status} />
+                          {req.status === "assigned" ? (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              disabled={busy === req.id}
+                              onClick={() => void markStatus(req.id, "completed")}
+                            >
+                              Complete
+                            </Button>
+                          ) : null}
+                        </div>
                       </CardContent>
                     </Card>
                   ))}
