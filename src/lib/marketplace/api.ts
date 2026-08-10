@@ -7,6 +7,7 @@ import type {
   DeliveryStatus,
   DeliveryStatusHistory,
   Payment,
+  Profile,
   Rating,
   Rider,
 } from "@/lib/supabase/types";
@@ -21,6 +22,16 @@ export async function listMyRequests(customerId: string) {
     .from("delivery_requests")
     .select("*")
     .eq("customer_id", customerId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as DeliveryRequest[];
+}
+
+/** Admin: all delivery requests, newest first. */
+export async function listAllRequests() {
+  const { data, error } = await supabase
+    .from("delivery_requests")
+    .select("*")
     .order("created_at", { ascending: false });
   if (error) throw error;
   return (data ?? []) as DeliveryRequest[];
@@ -73,11 +84,203 @@ export async function createRequest(
   return data as DeliveryRequest;
 }
 
+/** Independent couriers registered in the app. */
+export async function listAllCouriers() {
+  const { data, error } = await supabase
+    .from("riders")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as Rider[];
+}
+
+export async function listActiveCouriers(city?: string) {
+  let q = supabase.from("riders").select("*").eq("status", "active");
+  const { data, error } = await q.order("full_name", { ascending: true });
+  if (error) throw error;
+  let rows = (data ?? []) as Rider[];
+  if (city?.trim()) {
+    const c = city.trim().toLowerCase();
+    // vehicle_type sometimes stores city notes; prefer phone/name match later via profile
+    rows = rows.filter(
+      (r) =>
+        (r.vehicle_type ?? "").toLowerCase().includes(c) ||
+        (r.full_name ?? "").toLowerCase().includes(c),
+    );
+  }
+  return rows;
+}
+
+/** Create or update courier profile linked to auth user (admin-dispatch model). */
+export async function ensureCourierProfile(
+  userId: string,
+  input: {
+    full_name: string;
+    phone?: string;
+    city?: string;
+    vehicle_type?: string;
+  },
+) {
+  await supabase.from("user_roles").upsert(
+    { user_id: userId, role: "rider" },
+    { onConflict: "user_id,role" },
+  );
+
+  const existing = await getRiderByUserId(userId);
+  if (existing) {
+    const { data, error } = await supabase
+      .from("riders")
+      .update({
+        full_name: input.full_name.trim() || existing.full_name,
+        phone: input.phone ?? existing.phone,
+        vehicle_type: input.vehicle_type ?? input.city ?? existing.vehicle_type,
+        status: "active",
+      })
+      .eq("id", existing.id)
+      .select("*")
+      .single();
+    if (error) throw error;
+    return data as Rider;
+  }
+
+  // Independent courier — provider_id optional if schema allows; else use a soft placeholder note in vehicle_type
+  const row: Record<string, unknown> = {
+    user_id: userId,
+    full_name: input.full_name.trim() || "Courier",
+    phone: input.phone ?? null,
+    vehicle_type: input.vehicle_type ?? input.city ?? null,
+    status: "active",
+  };
+
+  // Try insert without provider_id first (preferred for independent model)
+  let { data, error } = await supabase.from("riders").insert(row).select("*").single();
+
+  if (error && /provider_id|null value/i.test(error.message)) {
+    // Fallback: attach to a system-owned independent pool provider if required by DB
+    const pool = await ensureIndependentPoolProvider();
+    ({ data, error } = await supabase
+      .from("riders")
+      .insert({ ...row, provider_id: pool.id })
+      .select("*")
+      .single());
+  }
+  if (error) throw error;
+  return data as Rider;
+}
+
+async function ensureIndependentPoolProvider() {
+  const { data: existing } = await supabase
+    .from("delivery_providers")
+    .select("*")
+    .eq("company_name", "GOSwift Independent Couriers")
+    .maybeSingle();
+  if (existing) return existing as DeliveryProvider;
+
+  // owner_id must be a real user — use first admin if any, else skip
+  const { data: admin } = await supabase
+    .from("user_roles")
+    .select("user_id")
+    .eq("role", "admin")
+    .limit(1)
+    .maybeSingle();
+
+  if (!admin?.user_id) {
+    throw new Error(
+      "Could not create courier profile: set provider_id nullable on riders, or create an admin first.",
+    );
+  }
+
+  const { data, error } = await supabase
+    .from("delivery_providers")
+    .insert({
+      owner_id: admin.user_id,
+      company_name: "GOSwift Independent Couriers",
+      status: "verified",
+      description: "Pool for self-registered couriers (admin dispatch)",
+    })
+    .select("*")
+    .single();
+  if (error) throw error;
+  return data as DeliveryProvider;
+}
+
+export async function getProfilesByIds(ids: string[]) {
+  if (ids.length === 0) return [] as Profile[];
+  const { data, error } = await supabase.from("profiles").select("*").in("id", ids);
+  if (error) throw error;
+  return (data ?? []) as Profile[];
+}
+
+/** Admin assigns a courier to a request: creates delivery row + marks request assigned. */
+export async function adminAssignCourier(opts: {
+  request: DeliveryRequest;
+  riderId: string;
+  adminId: string;
+  amount?: number;
+}) {
+  const { request, riderId, adminId, amount } = opts;
+
+  await supabase.from("delivery_requests").update({ status: "assigned" }).eq("id", request.id);
+
+  // Prefer existing delivery for this request
+  let delivery = await getDeliveryByRequest(request.id);
+  if (delivery) {
+    const { data, error } = await supabase
+      .from("deliveries")
+      .update({ rider_id: riderId, status: "assigned" })
+      .eq("id", delivery.id)
+      .select("*")
+      .single();
+    if (error) throw error;
+    delivery = data as Delivery;
+  } else {
+    // provider_id may still be required — use courier's provider if any
+    const rider = await getRider(riderId);
+    const providerId = rider?.provider_id;
+    if (!providerId) {
+      throw new Error("Courier is missing provider link. Re-save courier profile or fix DB schema.");
+    }
+    const { data, error } = await supabase
+      .from("deliveries")
+      .insert({
+        request_id: request.id,
+        provider_id: providerId,
+        rider_id: riderId,
+        customer_id: request.customer_id,
+        status: "assigned",
+        tracking_code: trackingCode(),
+      })
+      .select("*")
+      .single();
+    if (error) throw error;
+    delivery = data as Delivery;
+  }
+
+  if (amount && amount > 0) {
+    await supabase.from("payments").insert({
+      request_id: request.id,
+      delivery_id: delivery.id,
+      customer_id: request.customer_id,
+      amount,
+      currency: "NGN",
+      status: "pending",
+      gateway: "manual",
+    });
+  }
+
+  await addStatusHistory(delivery.id, "assigned", adminId, "Admin assigned courier");
+  return delivery;
+}
+
+export async function getRider(id: string) {
+  const { data, error } = await supabase.from("riders").select("*").eq("id", id).maybeSingle();
+  if (error) throw error;
+  return data as Rider | null;
+}
+
 export async function listVerifiedProviders(city?: string) {
   let q = supabase.from("delivery_providers").select("*").eq("status", "verified");
-  if (city?.trim()) {
-    q = q.ilike("city", `%${city.trim()}%`);
-  }
+  if (city?.trim()) q = q.ilike("city", `%${city.trim()}%`);
   const { data, error } = await q.order("avg_rating", { ascending: false });
   if (error) throw error;
   return (data ?? []) as DeliveryProvider[];
@@ -138,9 +341,7 @@ export async function submitQuote(input: {
     .select("*")
     .single();
   if (error) throw error;
-
   await supabase.from("delivery_requests").update({ status: "quoted" }).eq("id", input.request_id);
-
   return data as DeliveryQuote;
 }
 
@@ -155,7 +356,6 @@ export async function rejectQuote(quoteId: string) {
   return data as DeliveryQuote;
 }
 
-/** Accept quote → create held payment (pending). Contact unlock after pay. */
 export async function acceptQuote(quote: DeliveryQuote, customerId: string) {
   await supabase
     .from("delivery_quotes")
@@ -190,7 +390,6 @@ export async function acceptQuote(quote: DeliveryQuote, customerId: string) {
   return { quote: accepted as DeliveryQuote, payment: payment as Payment };
 }
 
-/** Stub checkout: mark paid, create delivery, optionally assign rider. */
 export async function completePaymentStub(opts: {
   paymentId: string;
   quote: DeliveryQuote;
@@ -198,7 +397,7 @@ export async function completePaymentStub(opts: {
   riderId?: string | null;
 }) {
   const commissionPct = await getCommissionPercentage();
-  const commission = Math.round((opts.quote.amount * commissionPct) / 100 * 100) / 100;
+  const commission = Math.round(((opts.quote.amount * commissionPct) / 100) * 100) / 100;
   const providerAmount = Math.round((opts.quote.amount - commission) * 100) / 100;
 
   const { data: payment, error: payErr } = await supabase
@@ -415,6 +614,17 @@ export async function getRiderByUserId(userId: string) {
   return data as Rider | null;
 }
 
+export async function setCourierStatus(riderId: string, status: "active" | "inactive") {
+  const { data, error } = await supabase
+    .from("riders")
+    .update({ status })
+    .eq("id", riderId)
+    .select("*")
+    .single();
+  if (error) throw error;
+  return data as Rider;
+}
+
 export async function getPaymentForRequest(requestId: string) {
   const { data, error } = await supabase
     .from("payments")
@@ -428,9 +638,17 @@ export async function getPaymentForRequest(requestId: string) {
 }
 
 export async function confirmDeliveryAndPayout(delivery: Delivery, customerId: string) {
-  const updated = await updateDeliveryStatus(delivery.id, "confirmed", customerId, "Customer confirmed");
+  const updated = await updateDeliveryStatus(
+    delivery.id,
+    "confirmed",
+    customerId,
+    "Customer confirmed",
+  );
 
-  await supabase.from("delivery_requests").update({ status: "completed" }).eq("id", delivery.request_id);
+  await supabase
+    .from("delivery_requests")
+    .update({ status: "completed" })
+    .eq("id", delivery.request_id);
 
   const { data: payment } = await supabase
     .from("payments")
@@ -438,7 +656,7 @@ export async function confirmDeliveryAndPayout(delivery: Delivery, customerId: s
     .eq("delivery_id", delivery.id)
     .maybeSingle();
 
-  if (payment && payment.status === "paid") {
+  if (payment && payment.status === "paid" && delivery.provider_id) {
     const amount = payment.provider_amount ?? payment.amount * 0.9;
     await supabase.from("payouts").insert({
       provider_id: delivery.provider_id,
@@ -448,18 +666,6 @@ export async function confirmDeliveryAndPayout(delivery: Delivery, customerId: s
       status: "pending",
       reference: `po_${delivery.tracking_code ?? delivery.id.slice(0, 8)}`,
     });
-
-    const { data: provider } = await supabase
-      .from("delivery_providers")
-      .select("completed_count")
-      .eq("id", delivery.provider_id)
-      .single();
-    if (provider) {
-      await supabase
-        .from("delivery_providers")
-        .update({ completed_count: (provider.completed_count ?? 0) + 1 })
-        .eq("id", delivery.provider_id);
-    }
   }
 
   return updated;
@@ -495,18 +701,6 @@ export async function submitRating(input: {
       body: input.review.trim(),
       is_published: true,
     });
-  }
-
-  const { data: scores } = await supabase
-    .from("ratings")
-    .select("score")
-    .eq("provider_id", input.provider_id);
-  if (scores?.length) {
-    const avg = scores.reduce((s, r) => s + r.score, 0) / scores.length;
-    await supabase
-      .from("delivery_providers")
-      .update({ avg_rating: Math.round(avg * 100) / 100 })
-      .eq("id", input.provider_id);
   }
 
   return rating as Rating;
